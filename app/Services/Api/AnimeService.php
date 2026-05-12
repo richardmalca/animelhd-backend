@@ -88,14 +88,19 @@ class AnimeService
     public function getAnimesPaginated(array $filters = [], int $perPage = 24): LengthAwarePaginator
     {
         $page = request('page', 1);
+        $perPage = (int) $perPage;
+        
+        // Si hay búsqueda, usamos un cache muy corto (10 seg) para evitar resultados vacíos persistentes
+        $cacheTTL = !empty($filters['search']) ? 10 : 300;
         $cacheKey = 'animes_pagination_' . md5(json_encode($filters) . $page . $perPage);
 
-        $data = Cache::tags(['catalog'])->remember($cacheKey, 300, function () use ($filters, $perPage) {
+        $data = Cache::tags(['catalog'])->remember($cacheKey, $cacheTTL, function () use ($filters, $perPage) {
             return Anime::query()
                 ->when(!empty($filters['search']), function ($query) use ($filters) {
-                    $query->where(function($q) use ($filters) {
-                        $q->where('name', 'like', '%' . $filters['search'] . '%')
-                          ->orWhere('name_alternative', 'like', '%' . $filters['search'] . '%');
+                    $search = trim($filters['search']);
+                    $query->where(function($q) use ($search) {
+                        $q->where('name', 'like', '%' . $search . '%')
+                          ->orWhere('name_alternative', 'like', '%' . $search . '%');
                     });
                 })
                 ->when(isset($filters['type']), fn($q) => $q->where('type', $filters['type']))
