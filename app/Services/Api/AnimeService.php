@@ -44,7 +44,8 @@ class AnimeService
                                 '2' => 'ESP',
                                 default => $lang
                             };
-                        })->values()->toArray()
+                        })->values()->toArray(),
+                        'created_at' => $episode->created_at->toISOString()
                     ];
                 })->toArray();
         });
