@@ -186,7 +186,7 @@ class AnimeService
                 ->with(['episodes' => function ($query) {
                     $query->has('players')->orderBy('number', 'desc')->select('id', 'anime_id', 'number', 'created_at');
                 }])
-                ->get(['id', 'name', 'slug', 'poster', 'broadcast', 'vote_average', 'type'])
+                ->get(['id', 'name', 'slug', 'poster', 'banner', 'broadcast', 'vote_average', 'type'])
                 ->map(function ($anime) {
                     $latestEpisode = $anime->episodes->first();
                     return [
@@ -194,6 +194,7 @@ class AnimeService
                         'name' => $anime->name,
                         'slug' => $anime->slug,
                         'poster' => $anime->poster,
+                        'banner' => $anime->banner,
                         'broadcast' => $anime->broadcast,
                         'vote_average' => $anime->vote_average,
                         'type' => $anime->type,
@@ -292,6 +293,7 @@ class AnimeService
                 'poster' => $anime['poster'],
                 'vote_average' => $anime['vote_average'],
                 'type' => $anime['type'],
+                'aired' => $anime['aired'],
                 'last_episode_number' => $latest ? $latest['number'] : 0,
                 'last_episode_at' => $latest ? $latest['created_at'] : null,
             ];
@@ -334,6 +336,7 @@ class AnimeService
                 'poster' => $anime['poster'],
                 'vote_average' => $anime['vote_average'],
                 'type' => $anime['type'],
+                'aired' => $anime['aired'],
                 'last_episode_number' => $latest ? $latest['number'] : 0,
                 'last_episode_at' => $latest ? $latest['created_at'] : null,
             ];
