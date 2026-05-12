@@ -90,8 +90,10 @@ class AnimeService
         $page = request('page', 1);
         $perPage = (int) $perPage;
         
-        // Si hay búsqueda, usamos un cache muy corto (10 seg) para evitar resultados vacíos persistentes
-        $cacheTTL = !empty($filters['search']) ? 10 : 300;
+        // Si hay cualquier filtro activo, usamos un cache más corto (30 seg) para mayor frescura
+        $hasFilters = !empty($filters['search']) || !empty($filters['status']) || !empty($filters['genre']) || !empty($filters['year']) || !empty($filters['type']);
+        $cacheTTL = $hasFilters ? 30 : 300;
+        
         $cacheKey = 'animes_pagination_' . md5(json_encode($filters) . $page . $perPage);
 
         $data = Cache::tags(['catalog'])->remember($cacheKey, $cacheTTL, function () use ($filters, $perPage) {
