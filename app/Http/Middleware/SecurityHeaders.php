@@ -15,22 +15,22 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
 
         if ($request->is('v/*')) {
+            $envDomains = env('ALLOWED_IFRAME_DOMAINS', '');
+            $allowedDomains = !empty($envDomains) ? explode(',', $envDomains) : [];
+            $allowedDomains = array_map('trim', $allowedDomains);
 
-            $allowedDomains = explode(',', env('ALLOWED_IFRAME_DOMAINS', ''));
-
-            $origin = $request->headers->get('origin');
-            $referer = $request->headers->get('referer');
+            $rawReferer = $request->headers->get('referer') ?? $request->headers->get('origin');
+            $requestHost = parse_url($rawReferer, PHP_URL_HOST);
 
             $valid = false;
 
-            foreach ($allowedDomains as $domain) {
-                $domain = trim($domain);
-
-                if (
-                    ($origin && str_starts_with($origin, $domain)) ||
-                    ($referer && str_starts_with($referer, $domain))
-                ) {
-                    $valid = true;
+            if ($requestHost) {
+                foreach ($allowedDomains as $domain) {
+                    $domainHost = parse_url($domain, PHP_URL_HOST) ?? $domain;
+                    if ($requestHost === $domainHost) {
+                        $valid = true;
+                        break;
+                    }
                 }
             }
 
@@ -38,11 +38,7 @@ class SecurityHeaders
                 abort(403);
             }
 
-            $response->headers->set(
-                'Content-Security-Policy',
-                "frame-ancestors " . implode(' ', $allowedDomains)
-            );
-
+            $response->headers->set('Content-Security-Policy', "frame-ancestors " . implode(' ', $allowedDomains));
             $response->headers->remove('X-Frame-Options');
 
         } else {
@@ -50,7 +46,7 @@ class SecurityHeaders
         }
 
         $response->headers->set('X-XSS-Protection', '1; mode=block');
-        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $response->headers->set('Referrer-Policy', 'no-referrer-when-downgrade');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
         if ($request->isSecure()) {
