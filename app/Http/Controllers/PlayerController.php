@@ -22,19 +22,6 @@ class PlayerController extends Controller
                 return response('El enlace ha expirado.', 403);
             }
 
-            $referer = $request->headers->get('referer');
-            $allowedDomain = parse_url(config('app.url'), PHP_URL_HOST);
-            
-            if ($referer) {
-                $refererHost = parse_url($referer, PHP_URL_HOST);
-                // Permitimos localhost y 127.0.0.1 con cualquier puerto para desarrollo
-                $isLocal = str_contains($refererHost, 'localhost') || str_contains($refererHost, '127.0.0.1');
-                
-                if ($refererHost !== $allowedDomain && !$isLocal) {
-                    return response('Acceso no autorizado.', 403);
-                }
-            }
-
             $player = Player::with('server')->findOrFail($playerId);
 
             if (str_starts_with($player->code, 'http')) {
