@@ -19,16 +19,9 @@ class HomeController extends Controller
 
     public function index(): JsonResponse
     {
-        $hero = null;
-        try {
-            $hero = $this->animeService->getHeroAnime();
-        } catch (Exception $e) {
-            Log::error('Error fetching hero anime: ' . $e->getMessage());
-        }
-
         $episodes = collect();
         try {
-            $episodes = $this->animeService->getLatestEpisodes(12);
+            $episodes = $this->animeService->getLatestEpisodes(18);
         } catch (Exception $e) {
             Log::error('Error fetching latest episodes: ' . $e->getMessage());
         }
@@ -41,7 +34,6 @@ class HomeController extends Controller
         }
 
         return response()->json([
-            'hero' => $hero,
             'episodes' => $episodes,
             'animes' => $animes
         ]);
