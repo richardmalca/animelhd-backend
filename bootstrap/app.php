@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 
+use App\Http\Middleware\CheckAppKey;
 use App\Http\Middleware\SecurityHeaders;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -17,17 +18,22 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->append(SecurityHeaders::class);
+        
+        $middleware->validateCsrfTokens(except: [
+            'v/*',
+        ]);
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
+            SecurityHeaders::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
         $middleware->api(append: [
-            \App\Http\Middleware\CheckAppKey::class,
+            CheckAppKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
