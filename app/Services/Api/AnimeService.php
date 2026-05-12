@@ -29,7 +29,7 @@ class AnimeService
             return Episode::whereIn('id', $latestIds)
                 ->with(['anime:id,name,poster,slug', 'players:id,episode_id,languaje'])
                 ->orderBy('id', 'desc')
-                ->get(['id', 'anime_id', 'number'])
+                ->get(['id', 'anime_id', 'number', 'created_at'])
                 ->map(function ($episode) {
                     return [
                         'id' => $episode->id,
