@@ -58,7 +58,9 @@ class AnimeController extends Controller
             $genres = [];
             if (isset($data['genres'])) {
                 foreach ($data['genres'] as $genre) {
-                    $dbGenre = \App\Models\Genre::whereRaw('LOWER(TRIM(name_mal)) = ?', [strtolower(trim($genre['name']))])->first();
+                    $dbGenre = \App\Models\Genre::whereRaw('LOWER(name_mal) = ?', [strtolower(trim($genre['name']))])
+                        ->orWhereRaw('LOWER(title) = ?', [strtolower(trim($genre['name']))])
+                        ->first();
                     if ($dbGenre) {
                         $genres[] = $dbGenre->slug;
                     }
@@ -68,7 +70,9 @@ class AnimeController extends Controller
             $malGenresRaw = [];
             if (isset($data['genres'])) {
                 foreach ($data['genres'] as $genre) {
-                    $dbGenre = \App\Models\Genre::whereRaw('LOWER(TRIM(name_mal)) = ?', [strtolower(trim($genre['name']))])->first();
+                    $dbGenre = \App\Models\Genre::whereRaw('LOWER(name_mal) = ?', [strtolower(trim($genre['name']))])
+                        ->orWhereRaw('LOWER(title) = ?', [strtolower(trim($genre['name']))])
+                        ->first();
                     $malGenresRaw[] = [
                         'name' => $genre['name'],
                         'slug' => $dbGenre ? $dbGenre->slug : null

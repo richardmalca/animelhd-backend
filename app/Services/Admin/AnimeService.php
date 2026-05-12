@@ -19,6 +19,18 @@ class AnimeService
             $slug = "{$baseSlug}-{$count}";
         }
 
+        $genres = [];
+        if (isset($data['genres'])) {
+            foreach ($data['genres'] as $genre) {
+                $dbGenre = \App\Models\Genre::whereRaw('LOWER(title) = ?', [strtolower(trim($genre['name']))])
+                    ->orWhereRaw('LOWER(name_mal) = ?', [strtolower(trim($genre['name']))])
+                    ->first();
+                if ($dbGenre) {
+                    $genres[] = $dbGenre->slug;
+                }
+            }
+        }
+
         return Anime::create([
             'name' => $name,
             'name_alternative' => $data['original_name'] ?? $data['original_title'] ?? null,
@@ -31,11 +43,24 @@ class AnimeService
             'status' => 1,
             'tmdb_id' => $tmdbId,
             'vote_average' => $data['vote_average'] ?? 0,
+            'genres' => !empty($genres) ? implode(',', $genres) : null,
         ]);
     }
 
     public function updateFromTmdbData(Anime $anime, array $data): bool
     {
+        $genres = [];
+        if (isset($data['genres'])) {
+            foreach ($data['genres'] as $genre) {
+                $dbGenre = \App\Models\Genre::whereRaw('LOWER(title) = ?', [strtolower(trim($genre['name']))])
+                    ->orWhereRaw('LOWER(name_mal) = ?', [strtolower(trim($genre['name']))])
+                    ->first();
+                if ($dbGenre) {
+                    $genres[] = $dbGenre->slug;
+                }
+            }
+        }
+
         return $anime->update([
             'name' => $data['name'] ?? $data['title'],
             'name_alternative' => $data['original_name'] ?? $data['original_title'] ?? null,
@@ -44,6 +69,7 @@ class AnimeService
             'banner' => $data['backdrop_path'] ?? $anime->banner,
             'aired' => $data['first_air_date'] ?? $data['release_date'] ?? $anime->aired,
             'vote_average' => $data['vote_average'] ?? $anime->vote_average,
+            'genres' => !empty($genres) ? implode(',', $genres) : $anime->genres,
         ]);
     }
 

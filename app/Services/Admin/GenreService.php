@@ -44,116 +44,57 @@ class GenreService
     {
         $malGenres = [
             'Action' => 'Acción',
-            'Adventure' => 'Aventura',
-            'Comedy' => 'Comedia',
-            'Drama' => 'Drama',
-            'Slice of Life' => 'Recuentos de la vida',
-            'Fantasy' => 'Fantasía',
-            'Magic' => 'Magia',
-            'Supernatural' => 'Sobrenatural',
-            'Horror' => 'Terror',
-            'Mystery' => 'Misterio',
-            'Psychological' => 'Psicológico',
-            'Romance' => 'Romance',
-            'Sci-Fi' => 'Ciencia Ficción',
-            'Cyberpunk' => 'Cyberpunk',
-            'Game' => 'Juegos',
-            'Demons' => 'Demonios',
-            'Ecchi' => 'Ecchi',
-            'Military' => 'Militar',
-            'Music' => 'Música',
-            'Parody' => 'Parodia',
-            'Samurai' => 'Samurái',
-            'School' => 'Escolar',
-            'Shounen' => 'Shounen',
-            'Shoujo' => 'Shoujo',
-            'Space' => 'Espacio',
-            'Sports' => 'Deportes',
-            'Super Power' => 'Superpoderes',
-            'Vampire' => 'Vampiros',
-            'Harem' => 'Harem',
-            'Police' => 'Policial',
-            'Thriller' => 'Thriller',
-            'Seinen' => 'Seinen',
-            'Josei' => 'Josei',
             'Martial Arts' => 'Artes Marciales',
-            'Mecha' => 'Mecha',
-            'Gourmet' => 'Gourmet',
-            'Suspense' => 'Suspense',
-            'Avant Garde' => 'Vanguardia',
-            'Award Winning' => 'Premiados',
-            'Boys Love' => 'Boys Love',
-            'Girls Love' => 'Girls Love',
-            'Work Life' => 'Vida Laboral',
-            'Erotica' => 'Erótica',
-            'Hentai' => 'Hentai',
+            'Adventure' => 'Aventura',
+            'Sci-Fi' => 'Ciencia Ficción',
+            'Comedy' => 'Comedia',
+            'Sports' => 'Deportes',
+            'Detective' => 'Detectives',
+            'Drama' => 'Drama',
+            'Ecchi' => 'Ecchi',
+            'School' => 'Escolar',
+            'Space' => 'Espacio',
+            'Fantasy' => 'Fantasía',
+            'Gore' => 'Gore',
+            'Harem' => 'Harem',
             'Historical' => 'Histórico',
-            'Mythology' => 'Mitología',
+            'Horror' => 'Horror',
             'Isekai' => 'Isekai',
-            'Racing' => 'Carreras',
-            'Strategy Game' => 'Juego de Estrategia',
-            'Organized Crime' => 'Crimen Organizado',
-            'Visual Arts' => 'Artes Visuales',
-            'Performing Arts' => 'Artes Escénicas',
-            'Video Game' => 'Videojuegos',
-            'Time Travel' => 'Viaje en el Tiempo',
-            'Childcare' => 'Cuidado de Niños',
-            'Combat Sports' => 'Deportes de Combate',
-            'Educational' => 'Educativo',
-            'High Stakes Game' => 'Juegos de Alto Riesgo',
-            'Idols (Female)' => 'Idols (Femenino)',
-            'Idols (Male)' => 'Idols (Masculino)',
-            'Magical Sex Shift' => 'Cambio de Sexo Mágico',
-            'Medical' => 'Médico',
-            'Otaku Culture' => 'Cultura Otaku',
-            'Pets' => 'Mascotas',
-            'Reincarnation' => 'Reencarnación',
-            'Reverse Harem' => 'Harem Inverso',
-            'Romantic Subtext' => 'Subtexto Romántico',
-            'Showbiz' => 'Espectáculo',
-            'Survival' => 'Supervivencia',
-            'Team Sports' => 'Deportes de Equipo',
-            'Anthropomorphic' => 'Antropomórfico',
-            'CGDCT' => 'CGDCT',
-            'Detective' => 'Detective',
-            'Iyashikei' => 'Iyashikei',
-            'Love Polygon' => 'Polígono Amoroso',
+            'Josei' => 'Josei',
+            'Game' => 'Juegos',
             'Mahou Shoujo' => 'Mahou Shoujo',
+            'Mecha' => 'Mecha',
+            'Military' => 'Militar',
+            'Mystery' => 'Misterio',
+            'Mythology' => 'Mitológico',
+            'Music' => 'Musica',
+            'Parody' => 'Parodia',
+            'Psychological' => 'Psicológico',
+            'Slice of Life' => 'Recuentos De La Vida',
+            'Romance' => 'Romance',
+            'Samurai' => 'Samurais',
+            'Seinen' => 'Seinen',
+            'Shoujo' => 'Shoujo',
+            'Girls Love' => 'Shoujo Ai',
+            'Shounen' => 'Shounen',
+            'Boys Love' => 'Shounen Ai',
+            'Supernatural' => 'Sobrenatural',
+            'Erotica' => 'Soft Hentai',
+            'Super Power' => 'Super Poderes',
+            'Suspense' => 'Suspenso',
+            'Vampire' => 'Vampiros',
         ];
-
-        try {
-            $response = Http::get('https://api.jikan.moe/v4/genres/anime');
-            if ($response->successful()) {
-                $jikanData = $response->json('data');
-                $count = 0;
-                foreach ($jikanData as $genre) {
-                    $malName = $genre['name'];
-                    $spanishTitle = $malGenres[$malName] ?? $malName;
-
-                    Genre::updateOrCreate(
-                        ['name_mal' => $malName],
-                        [
-                            'title' => $spanishTitle,
-                            'slug' => Str::slug($spanishTitle)
-                        ]
-                    );
-                    $count++;
-                }
-                return $count;
-            }
-        } catch (Exception $e) {
-        }
 
         $count = 0;
         foreach ($malGenres as $malName => $spanishTitle) {
-            Genre::updateOrCreate(
-                ['name_mal' => $malName],
-                [
-                    'title' => $spanishTitle,
-                    'slug' => Str::slug($spanishTitle)
-                ]
-            );
-            $count++;
+            $genre = Genre::where('title', $spanishTitle)
+                ->orWhere('slug', Str::slug($spanishTitle))
+                ->first();
+
+            if ($genre) {
+                $genre->update(['name_mal' => $malName]);
+                $count++;
+            }
         }
 
         return $count;
