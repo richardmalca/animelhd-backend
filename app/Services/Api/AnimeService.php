@@ -58,7 +58,7 @@ class AnimeService
         $data = Cache::tags(['home'])->remember("latest_animes_{$limit}", 300, function () use ($limit) {
             return Anime::orderBy('id', 'desc')
                 ->limit($limit)
-                ->get(['id', 'name', 'slug', 'poster', 'vote_average', 'type'])
+                ->get(['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
                 ->toArray();
         });
 
@@ -86,7 +86,7 @@ class AnimeService
         return $anime;
     }
 
-    public function getAnimesPaginated(array $filters = [], int $perPage = 24): LengthAwarePaginator
+    public function getAnimesPaginated(array $filters = [], int $perPage = 28): LengthAwarePaginator
     {
         $page = request('page', 1);
         $perPage = (int) $perPage;
@@ -116,7 +116,7 @@ class AnimeService
                     }
                 })
                 ->orderBy('id', 'desc')
-                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type'])
+                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
                 ->toArray();
         });
 
@@ -264,7 +264,7 @@ class AnimeService
         });
     }
 
-    public function getLatinosPaginated(int $perPage = 24): LengthAwarePaginator
+    public function getLatinosPaginated(int $perPage = 28): LengthAwarePaginator
     {
         $page = request('page', 1);
         $cacheKey = "animes_latinos_{$page}_{$perPage}";
@@ -277,7 +277,7 @@ class AnimeService
                     $query->has('players')->orderBy('number', 'desc')->select('id', 'anime_id', 'number', 'created_at');
                 }])
                 ->orderBy('id', 'desc')
-                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type'])
+                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
                 ->toArray();
         });
 
@@ -306,7 +306,7 @@ class AnimeService
         );
     }
 
-    public function getCastellanosPaginated(int $perPage = 24): LengthAwarePaginator
+    public function getCastellanosPaginated(int $perPage = 28): LengthAwarePaginator
     {
         $page = request('page', 1);
         $cacheKey = "animes_castellanos_{$page}_{$perPage}";
@@ -319,7 +319,7 @@ class AnimeService
                     $query->has('players')->orderBy('number', 'desc')->select('id', 'anime_id', 'number', 'created_at');
                 }])
                 ->orderBy('id', 'desc')
-                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type'])
+                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
                 ->toArray();
         });
 
