@@ -17,6 +17,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin', [DashboardController::class, 'index'])->name('admin');
+    Route::post('admin/cache/flush', [DashboardController::class, 'flushCache'])->name('admin.cache.flush');
 
     Route::prefix('admin/animes')->group(function () {
         Route::get('import', [AnimeController::class, 'import'])->name('admin.animes.import');
