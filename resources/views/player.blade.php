@@ -11,5 +11,12 @@
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
+
+    <script id="aclib" type="text/javascript" src="//acscdn.com/script/aclib.js"></script>
+    <script type="text/javascript">
+        aclib.runPop({
+            zoneId: '11310558',
+        });
+    </script>
 </body>
 </html>
