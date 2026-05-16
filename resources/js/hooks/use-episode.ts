@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 
-export const useEpisode = (defaultAnimeId?: string) => {
+export const useEpisode = (defaultAnimeId?: string, nextEpisodeNumber: string | number = '1') => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingEpisode, setEditingEpisode] = useState<any>(null);
     const [episodeToDelete, setEpisodeToDelete] = useState<any>(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
-        number: '1',
+        number: nextEpisodeNumber.toString(),
         anime_id: defaultAnimeId || '',
     });
 
@@ -18,7 +18,7 @@ export const useEpisode = (defaultAnimeId?: string) => {
         reset();
         setData((prev) => ({
             ...prev,
-            number: '1',
+            number: nextEpisodeNumber.toString(),
             anime_id: defaultAnimeId || '',
         }));
         clearErrors();

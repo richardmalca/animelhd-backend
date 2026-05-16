@@ -14,6 +14,7 @@ use App\Services\Admin\MalService;
 use App\Services\Admin\AnimeService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 
 class AnimeController extends Controller
 {
@@ -270,6 +271,7 @@ class AnimeController extends Controller
         ]);
 
         $anime->update($validated);
+        $this->animeService->clearCache($anime->slug);
 
         return redirect()->route('admin.animes.index')->with('success', "{$anime->name} actualizado correctamente");
     }
@@ -357,7 +359,9 @@ class AnimeController extends Controller
 
     public function destroy(Anime $anime)
     {
+        $slug = $anime->slug;
         $anime->delete();
+        $this->animeService->clearCache($slug);
         return redirect()->route('admin.animes.index');
     }
 }

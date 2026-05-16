@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\Anime;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class AnimeService
 {
@@ -31,7 +32,7 @@ class AnimeService
             }
         }
 
-        return Anime::create([
+        $anime = Anime::create([
             'name' => $name,
             'name_alternative' => $data['original_name'] ?? $data['original_title'] ?? null,
             'slug' => $slug,
@@ -45,6 +46,14 @@ class AnimeService
             'vote_average' => $data['vote_average'] ?? 0,
             'genres' => !empty($genres) ? implode(',', $genres) : null,
         ]);
+
+        $this->clearCache();
+        return $anime;
+    }
+
+    public function clearCache(): void
+    {
+        Cache::tags(['home', 'catalog'])->flush();
     }
 
     public function updateFromTmdbData(Anime $anime, array $data): bool
@@ -61,7 +70,7 @@ class AnimeService
             }
         }
 
-        return $anime->update([
+        $updated = $anime->update([
             'name' => $data['name'] ?? $data['title'],
             'name_alternative' => $data['original_name'] ?? $data['original_title'] ?? null,
             'overview' => $data['overview'] ?? $anime->overview,
@@ -71,6 +80,9 @@ class AnimeService
             'vote_average' => $data['vote_average'] ?? $anime->vote_average,
             'genres' => !empty($genres) ? implode(',', $genres) : $anime->genres,
         ]);
+
+        $this->clearCache();
+        return $updated;
     }
 
     /**
@@ -114,7 +126,7 @@ class AnimeService
             }
         }
 
-        return $anime->update([
+        $updated = $anime->update([
             'name' => $data['title'] ?? $anime->name,
             'name_alternative' => !empty($altTitles) ? implode(', ', array_unique($altTitles)) : $anime->name_alternative,
             'status' => $statusMap[$data['status'] ?? ''] ?? $anime->status,
@@ -125,6 +137,9 @@ class AnimeService
             'premiered' => $data['start_season'] ? ucfirst($data['start_season']['season']) . ' ' . $data['start_season']['year'] : $anime->premiered,
             'popularity' => $data['popularity'] ?? $anime->popularity,
         ]);
+
+        $this->clearCache();
+        return $updated;
     }
 
     private function normalizeRating(?string $rating): string

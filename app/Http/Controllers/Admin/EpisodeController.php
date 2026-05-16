@@ -24,7 +24,8 @@ class EpisodeController extends Controller
         return Inertia::render('admin/episodes/index', [
             'anime' => $anime,
             'episodes' => $anime->episodes()->orderBy('number', 'desc')->paginate(10),
-            'animes' => [$anime->only('id', 'name')]
+            'animes' => [$anime->only('id', 'name')],
+            'next_episode_number' => ($anime->episodes()->max('number') ?? 0) + 1,
         ]);
     }
 

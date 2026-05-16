@@ -20,10 +20,12 @@ export default function EpisodeIndex({
     episodes,
     animes,
     anime,
+    next_episode_number = '1',
 }: {
     episodes: any;
     animes: any;
     anime?: any;
+    next_episode_number?: string | number;
 }) {
     const {
         data,
@@ -41,7 +43,7 @@ export default function EpisodeIndex({
         confirmDelete,
         submit,
         deleteEpisode,
-    } = useEpisode(anime?.id?.toString());
+    } = useEpisode(anime?.id?.toString(), next_episode_number);
 
     return (
         <div className="flex flex-1 flex-col gap-6 p-4 lg:p-6">

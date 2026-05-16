@@ -7,6 +7,7 @@ use App\Models\Anime;
 use App\Models\Player;
 use App\Models\Server;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 
 class EpisodeService
 {
@@ -19,17 +20,35 @@ class EpisodeService
 
     public function createEpisode(array $data): Episode
     {
-        return Episode::create($data);
+        $episode = Episode::create($data);
+        $anime = Anime::find($data['anime_id']);
+        $this->clearCache($anime->slug ?? null);
+        return $episode;
     }
 
     public function updateEpisode(Episode $episode, array $data): bool
     {
-        return $episode->update($data);
+        $updated = $episode->update($data);
+        $anime = Anime::find($data['anime_id'] ?? $episode->anime_id);
+        $this->clearCache($anime->slug ?? null);
+        return $updated;
     }
 
     public function deleteEpisode(Episode $episode): bool
     {
-        return $episode->delete();
+        $animeSlug = $episode->anime->slug ?? null;
+        $deleted = $episode->delete();
+        $this->clearCache($animeSlug);
+        return $deleted;
+    }
+
+    public function clearCache(?string $slug = null): void
+    {
+        $tags = ['home', 'calendar', 'anime-detail', 'episode-detail'];
+        if ($slug) {
+            $tags[] = "anime-{$slug}";
+        }
+        Cache::tags($tags)->flush();
     }
 
     public function bulkSync(Anime $anime, int $count): void
@@ -46,6 +65,7 @@ class EpisodeService
                 ]
             );
         }
+        $this->clearCache($anime->slug);
     }
 
     public function bulkImportWithPlayers(Anime $anime, array $data): void
@@ -113,6 +133,7 @@ class EpisodeService
                 );
             }
         }
+        $this->clearCache($anime->slug);
     }
 
     private function extractPlayerId(string $url): string
