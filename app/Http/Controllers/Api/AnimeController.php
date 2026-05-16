@@ -41,7 +41,7 @@ class AnimeController extends Controller
         return response()->json($this->animeService->getYears());
     }
 
-    public function episode(string $slug, int $number): JsonResponse
+    public function episode(string $slug, $number): JsonResponse
     {
         $data = $this->animeService->getEpisodeData($slug, $number);
         if (!$data) {

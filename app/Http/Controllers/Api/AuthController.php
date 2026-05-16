@@ -19,6 +19,7 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
+        Log::info('Password recovery request received', ['email' => $request->email]);
         try {
             $request->validate(['email' => 'required|email']);
             
@@ -40,6 +41,7 @@ class AuthController extends Controller
 
     public function validateResetToken(Request $request)
     {
+        Log::info('Validating password reset token', ['email' => $request->email]);
         try {
             $request->validate([
                 'token' => 'required|string',
@@ -66,6 +68,7 @@ class AuthController extends Controller
 
     public function resetPassword(Request $request)
     {
+        Log::info('Password reset attempt', ['email' => $request->email]);
         try {
             $request->validate([
                 'token' => 'required|string',

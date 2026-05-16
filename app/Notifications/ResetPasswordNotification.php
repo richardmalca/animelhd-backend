@@ -25,6 +25,10 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        \Illuminate\Support\Facades\Log::info('Worker is processing password reset email', [
+            'email' => $notifiable->email
+        ]);
+
         return (new MailMessage)
             ->subject('Recuperación de contraseña - ' . env('APP_NAME'))
             ->greeting('¡Hola!')
