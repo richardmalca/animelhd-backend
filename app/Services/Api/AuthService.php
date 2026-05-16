@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class AuthService
 {
@@ -29,10 +30,18 @@ class AuthService
             return ['status' => 'success', 'message' => 'Si el correo existe en nuestro sistema, recibirás un enlace pronto.'];
         }
 
-        $token = Password::createToken($user);
-        $user->sendPasswordResetNotification($token);
-
-        return ['status' => 'success', 'message' => 'Enlace de recuperación enviado con éxito.'];
+        try {
+            $token = Password::createToken($user);
+            $user->sendPasswordResetNotification($token);
+            Log::info('Password reset email sent successfully', ['email' => $email]);
+            return ['status' => 'success', 'message' => 'Enlace de recuperación enviado con éxito.'];
+        } catch (\Exception $e) {
+            Log::error('Error sending reset link email: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'email' => $email
+            ]);
+            return ['status' => 'error', 'message' => 'Error al enviar el correo de recuperación.'];
+        }
     }
 
     public function validateToken(string $email, string $token)

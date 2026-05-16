@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\Api\AuthService;
 use Illuminate\Http\Request;
 
+use Illuminate\Support\Facades\Log;
+
 class AuthController extends Controller
 {
     protected $authService;
@@ -28,7 +30,11 @@ class AuthController extends Controller
 
             return response()->json(['message' => $result['message']]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Ocurrió un error inesperado. Por favor, inténtelo de nuevo más tarde.'], 500);
+            Log::error('Password recovery error: ' . $e->getMessage(), [
+                'email' => $request->email,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => 'Ocurrió un error inesperado al procesar la solicitud.'], 500);
         }
     }
 
