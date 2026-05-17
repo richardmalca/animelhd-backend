@@ -43,7 +43,7 @@ class AnimeController extends Controller
 
     public function episode(string $slug, $number): JsonResponse
     {
-        $data = $this->animeService->getEpisodeData($slug, $number);
+        $data = $this->animeService->getEpisodeData($slug, (int) $number);
         if (!$data) {
             return response()->json(['message' => 'Episode not found'], 404);
         }

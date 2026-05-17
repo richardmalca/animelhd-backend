@@ -29,6 +29,10 @@ class AuthController extends Controller
                 return response()->json(['message' => $result['message']], 503);
             }
 
+            if (isset($result['status']) && $result['status'] === 'error') {
+                return response()->json(['message' => $result['message']], 400);
+            }
+
             return response()->json(['message' => $result['message']]);
         } catch (\Exception $e) {
             Log::error('Password recovery error: ' . $e->getMessage(), [

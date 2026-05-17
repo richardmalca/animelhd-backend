@@ -2,15 +2,11 @@
 
 namespace App\Notifications;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class ResetPasswordNotification extends Notification implements ShouldQueue
+class ResetPasswordNotification extends Notification
 {
-    use Queueable;
-
     protected $url;
 
     public function __construct($url)
@@ -25,7 +21,7 @@ class ResetPasswordNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        \Illuminate\Support\Facades\Log::info('Worker is processing password reset email', [
+        \Illuminate\Support\Facades\Log::info('Sending password reset email synchronously', [
             'email' => $notifiable->email
         ]);
 

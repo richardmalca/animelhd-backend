@@ -27,7 +27,8 @@ class AuthService
         $user = User::where('email', $email)->first();
 
         if (!$user) {
-            return ['status' => 'success', 'message' => 'Si el correo existe en nuestro sistema, recibirás un enlace pronto.'];
+            Log::warning('Password recovery requested for non-existent email', ['email' => $email]);
+            return ['status' => 'error', 'message' => 'El correo electrónico no está registrado.'];
         }
 
         try {

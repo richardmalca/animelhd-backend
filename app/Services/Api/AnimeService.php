@@ -14,18 +14,17 @@ use Illuminate\Support\Facades\Redis;
 
 class AnimeService
 {
-    public function getLatestEpisodes(int $limit = 12): Collection
+   public function getLatestEpisodes(int $limit = 12): Collection
     {
         $data = Cache::tags(['home'])->remember("latest_episodes_{$limit}", 300, function () use ($limit) {
-            // 1. Obtener los IDs de los últimos episodios únicos por anime
             $latestIds = Episode::has('players')
-                ->select(DB::raw('MAX(id) as id'))
-                ->groupBy('anime_id')
                 ->orderBy('id', 'desc')
-                ->limit($limit)
+                ->limit(50)
+                ->get(['id', 'anime_id'])
+                ->unique('anime_id')
+                ->take($limit)
                 ->pluck('id');
 
-            // 2. Traer la información completa de esos episodios específicos
             return Episode::whereIn('id', $latestIds)
                 ->with(['anime:id,name,poster,slug', 'players:id,episode_id,languaje'])
                 ->orderBy('id', 'desc')
@@ -48,18 +47,6 @@ class AnimeService
                         'created_at' => $episode->created_at->toISOString()
                     ];
                 })->toArray();
-        });
-
-        return collect($data);
-    }
-
-    public function getLatestAnimes(int $limit = 14): Collection
-    {
-        $data = Cache::tags(['home'])->remember("latest_animes_{$limit}", 300, function () use ($limit) {
-            return Anime::orderBy('id', 'desc')
-                ->limit($limit)
-                ->get(['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
-                ->toArray();
         });
 
         return collect($data);
@@ -91,7 +78,6 @@ class AnimeService
         $page = request('page', 1);
         $perPage = (int) $perPage;
         
-        // Si hay cualquier filtro activo, usamos un cache más corto (30 seg) para mayor frescura
         $hasFilters = !empty($filters['search']) || !empty($filters['status']) || !empty($filters['genre']) || !empty($filters['year']) || !empty($filters['type']);
         $cacheTTL = $hasFilters ? 30 : 300;
         
