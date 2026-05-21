@@ -22,14 +22,14 @@ class HomeController extends Controller
         $episodes = collect();
         try {
             $episodes = $this->animeService->getLatestEpisodes(18);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error fetching latest episodes: ' . $e->getMessage());
         }
 
         $animes = collect();
         try {
             $animes = $this->animeService->getLatestAnimes(14);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error fetching latest animes: ' . $e->getMessage());
         }
 

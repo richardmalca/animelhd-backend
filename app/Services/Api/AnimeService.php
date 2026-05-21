@@ -52,6 +52,18 @@ class AnimeService
         return collect($data);
     }
 
+    public function getLatestAnimes(int $limit = 14): Collection
+    {
+        $data = Cache::tags(['home'])->remember("latest_animes_{$limit}", 300, function () use ($limit) {
+            return Anime::orderBy('id', 'desc')
+                ->limit($limit)
+                ->get(['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
+                ->toArray();
+        });
+
+        return collect($data);
+    }
+
     public function getHeroAnime(): ?Anime
     {
         $heroData = Cache::tags(['home'])->remember('hero_anime_array', 86400, function () {
