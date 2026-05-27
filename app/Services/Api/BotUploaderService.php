@@ -12,28 +12,16 @@ class BotUploaderService
 {
     public function getTioActiveAiringAnimes(): Collection
     {
-        $data = Cache::tags(['tio-active'])->remember('tio_active_airing_animes', 300, function () {
-            return Anime::where('active_tio', 1)
-                ->where('status', 1)
-                ->with(['episodes' => function ($query) {
-                    $query->orderBy('number', 'desc');
-                }])
-                ->get()
-                ->map(function ($anime) {
-                    $latestEpisode = $anime->episodes->first();
-                    return [
-                        'id' => $anime->id,
-                        'nombre' => $anime->name,
-                        'name' => $anime->name,
-                        'nombre_corto' => $anime->short_name,
-                        'short_name' => $anime->short_name,
-                        'ultimo_episodio' => $latestEpisode ? $latestEpisode->number : null,
-                    ];
-                })
-                ->toArray();
-        });
-
-        return collect($data);
+        return Anime::where('active_tio', 1)
+            ->where('status', 1)
+            ->select('id', 'name', 'short_name', 'slug_tio')
+            ->addSelect([
+                'last_episode' => Episode::select('number')
+                    ->whereColumn('anime_id', 'animes.id')
+                    ->orderBy('number', 'desc')
+                    ->limit(1)
+            ])
+            ->get();
     }
 
     public function uploadEpisodeWithPlayers(array $data): array
