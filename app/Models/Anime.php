@@ -36,6 +36,8 @@ class Anime extends Model
         'rating',
         'popularity',
         'trailer',
+        'slug_tio',
+        'active_tio',
     ];
 
     public function episodes(): HasMany
