@@ -5,6 +5,7 @@ namespace App\Services\Api;
 use App\Models\Anime;
 use App\Models\Episode;
 use App\Models\Genre;
+use App\Models\Player;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
