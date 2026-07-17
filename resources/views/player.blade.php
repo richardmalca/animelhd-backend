@@ -23,5 +23,12 @@
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
+
+    <script>
+        (function(s){
+            s.dataset.zone='11307964';
+            s.src='https://llvpn.com/tag.min.js';
+        })([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));
+    </script>
 </body>
 </html>
