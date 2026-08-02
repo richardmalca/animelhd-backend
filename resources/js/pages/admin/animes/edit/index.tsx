@@ -18,8 +18,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useAnimeEdit } from '@/hooks/use-anime-edit';
 import type { Anime } from '@/types/anime';
+import { useAnimeEdit } from './hooks/use-anime-edit';
 import { AnimeBasicInfoSection } from './components/anime-basic-info-section';
 import { AnimeFormHeader } from './components/anime-form-header';
 import { AnimeImageSection } from './components/anime-image-section';
@@ -120,9 +120,9 @@ export default function AnimeEdit({
 
             {!data.mal_id && (
                 <Card className="border-orange-500/50 bg-orange-500/5">
-                    <CardContent className="flex items-center justify-between p-4">
+                    <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-full bg-orange-500/20 p-2 text-orange-600">
+                            <div className="bg-orange-500/20 p-2 text-orange-600">
                                 <AlertCircle className="size-5" />
                             </div>
                             <div>
@@ -136,7 +136,7 @@ export default function AnimeEdit({
                             className="border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
                             onClick={() => setIsMalSearchOpen(true)}
                         >
-                            <Search className="mr-2 size-3" />
+                            <Search />
                             Buscar en MAL
                         </Button>
                     </CardContent>

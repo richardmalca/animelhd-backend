@@ -27,6 +27,7 @@ export function EpisodeModal({
     errors,
     processing,
     editingEpisode,
+    isDirty,
     anime,
     animes,
 }: any) {
@@ -77,7 +78,7 @@ export function EpisodeModal({
                         <Button type="button" variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>
-                        <Button type="submit" disabled={processing}>
+                        <Button type="submit" disabled={processing || !isDirty}>
                             {editingEpisode ? 'Guardar Cambios' : 'Crear Episodio'}
                         </Button>
                     </DialogFooter>

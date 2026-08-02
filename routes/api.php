@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\AnimeController;
+use App\Http\Controllers\Api\AnimeSyncController;
 use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BotUploaderController;
@@ -28,6 +29,11 @@ Route::middleware([CheckAppKey::class])->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index']);
     Route::get('/latinos', [AnimeController::class, 'latinos']);
     Route::get('/castellanos', [AnimeController::class, 'castellanos']);
+
+    Route::middleware('throttle:60,1')->prefix('sync')->group(function () {
+        Route::get('/animes/version', [AnimeSyncController::class, 'version']);
+        Route::get('/animes', [AnimeSyncController::class, 'index']);
+    });
 
     Route::get('/user', function (Request $request) {
         return $request->user();

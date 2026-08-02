@@ -28,37 +28,31 @@ export default function Login({ status }: Props) {
                         <>
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="email" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Correo Electrónico</Label>
+                                    <Label htmlFor="email">Correo Electrónico</Label>
                                     <Input
                                         id="email"
                                         type="email"
                                         name="email"
                                         required
                                         autoFocus
-                                        placeholder="tu@correo.com"
-                                        className="h-12 rounded-xl"
+                                        placeholder="admin@example.com"
                                     />
                                     <InputError message={errors.email} />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="password" className="text-xs font-black uppercase tracking-widest text-muted-foreground">Contraseña</Label>
+                                    <Label htmlFor="password">Contraseña</Label>
                                     <PasswordInput
                                         id="password"
                                         name="password"
                                         required
                                         placeholder="••••••••"
-                                        className="h-12 rounded-xl"
                                     />
                                     <InputError message={errors.password} />
                                 </div>
                             </div>
 
-                            <Button
-                                type="submit"
-                                className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase tracking-widest text-xs transition-all active:scale-[0.98]"
-                                disabled={processing}
-                            >
+                            <Button type="submit" size="lg" className="w-full" disabled={processing}>
                                 {processing ? <Spinner /> : 'Ingresar al Panel'}
                             </Button>
                         </>

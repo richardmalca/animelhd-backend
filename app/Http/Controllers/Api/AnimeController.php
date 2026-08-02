@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Api\AnimeService;
+use App\Services\Api\ViewCounterService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,9 +12,12 @@ class AnimeController extends Controller
 {
     protected AnimeService $animeService;
 
-    public function __construct(AnimeService $animeService)
+    protected ViewCounterService $viewCounterService;
+
+    public function __construct(AnimeService $animeService, ViewCounterService $viewCounterService)
     {
         $this->animeService = $animeService;
+        $this->viewCounterService = $viewCounterService;
     }
 
     public function index(Request $request): JsonResponse
@@ -28,6 +32,7 @@ class AnimeController extends Controller
         if (!$data) {
             return response()->json(['message' => 'Anime not found'], 404);
         }
+        $this->viewCounterService->incrementAnime($data['anime']['id']);
         return response()->json($data);
     }
 
@@ -47,6 +52,7 @@ class AnimeController extends Controller
         if (!$data) {
             return response()->json(['message' => 'Episode not found'], 404);
         }
+        $this->viewCounterService->incrementEpisode($data['episode']['id']);
         return response()->json($data);
     }
 

@@ -63,13 +63,9 @@ export function AnimeBasicInfoSection({
 
             <div className="space-y-3">
                 <Label htmlFor="name_alternative">Títulos Alternativos</Label>
-                <div className="flex min-h-[2.5rem] flex-wrap gap-2 rounded-md border bg-muted/20 p-2">
+                <div className="flex min-h-9 flex-wrap gap-2 border border-input bg-transparent p-2 dark:bg-input/30">
                     {altTitles.map((title, index) => (
-                        <Badge
-                            key={index}
-                            variant="secondary"
-                            className="max-w-full gap-1 px-2 py-1"
-                        >
+                        <Badge key={index} variant="secondary" className="max-w-full gap-1">
                             <span className="max-w-[150px] truncate sm:max-w-[300px]">
                                 {title}
                             </span>
@@ -83,7 +79,8 @@ export function AnimeBasicInfoSection({
                         </Badge>
                     ))}
                     <input
-                        className="min-w-[120px] flex-1 border-none bg-transparent text-sm outline-none"
+                        id="name_alternative"
+                        className="min-w-[120px] flex-1 border-none bg-transparent text-xs outline-none placeholder:text-muted-foreground"
                         placeholder={altTitles.length === 0 ? 'Escribe y pulsa Enter o coma...' : 'Agregar más...'}
                         value={titleInput}
                         onChange={(e) => setTitleInput(e.target.value)}
@@ -105,20 +102,16 @@ export function AnimeBasicInfoSection({
 
             <div className="space-y-3">
                 <Label>Géneros</Label>
-                <div className="flex min-h-[2.5rem] flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-2">
+                <div className="flex min-h-9 flex-wrap items-center gap-2 border border-input bg-transparent p-2 dark:bg-input/30">
                     {selectedGenres.map((slug) => {
                         const genre = genres.find((g) => g.slug === slug);
 
                         if (!genre) {
-return null;
-}
+                            return null;
+                        }
 
                         return (
-                            <Badge
-                                key={slug}
-                                variant="secondary"
-                                className="max-w-full gap-1 px-2 py-1"
-                            >
+                            <Badge key={slug} variant="secondary" className="max-w-full gap-1">
                                 <span className="max-w-[150px] truncate sm:max-w-[300px]">
                                     {genre.title}
                                 </span>
@@ -134,12 +127,8 @@ return null;
                     })}
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 border border-dashed px-2 text-xs hover:border-primary hover:text-primary"
-                            >
-                                <Plus className="mr-1 size-3" />
+                            <Button variant="outline" size="xs" className="border-dashed">
+                                <Plus />
                                 Agregar Géneros
                             </Button>
                         </PopoverTrigger>
@@ -153,18 +142,16 @@ return null;
                                     const isSelected = selectedGenres.includes(genre.slug);
 
                                     return (
-                                        <div
+                                        <button
+                                            type="button"
                                             key={genre.slug}
                                             onClick={() => onToggleGenre(genre.slug)}
-                                            className={`flex cursor-pointer items-center gap-2 rounded-md border p-2 transition-all ${
-                                                isSelected
-                                                    ? 'border-primary bg-primary/10 font-medium text-primary'
-                                                    : 'border-transparent text-muted-foreground hover:bg-muted'
-                                            }`}
+                                            data-selected={isSelected}
+                                            className="flex items-center gap-2 border border-transparent p-2 text-left text-muted-foreground transition-all hover:bg-muted data-[selected=true]:border-primary data-[selected=true]:bg-primary/10 data-[selected=true]:font-medium data-[selected=true]:text-primary"
                                         >
-                                            <div className={`size-3 rounded-full border ${isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/30'}`} />
+                                            <div className="size-3 shrink-0 rounded-full border border-muted-foreground/30 data-[selected=true]:border-primary data-[selected=true]:bg-primary" data-selected={isSelected} />
                                             <span className="truncate text-xs">{genre.title}</span>
-                                        </div>
+                                        </button>
                                     );
                                 })}
                             </div>

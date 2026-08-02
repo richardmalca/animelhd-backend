@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import { toast } from 'sonner';
+import { groupPlayers } from '../language';
+import { playerEmbedUrl } from '../player-url';
 
-export const usePlayer = (animeId: number, episodeId: number, players: any[] = [], servers: any[] = []) => {
+export function usePlayerIndex(animeId: number, episodeId: number, players: any[] = [], servers: any[] = []) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingPlayer, setEditingPlayer] = useState<any>(null);
     const [playerToDelete, setPlayerToDelete] = useState<any>(null);
+    const [originalData, setOriginalData] = useState<{ server_id: string; code: string; languaje: string } | null>(null);
+    const [locked, setLocked] = useState(false);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         server_id: '',
@@ -16,21 +20,21 @@ export const usePlayer = (animeId: number, episodeId: number, players: any[] = [
 
     const handleCodeChange = (val: string) => {
         setData('code', val);
-        
+
         try {
             if (val.startsWith('http')) {
                 const url = new URL(val);
                 const hostname = url.hostname.toLowerCase().replace('www.', '');
-                
+
                 const currentServer = servers.find(s => s.id.toString() === data.server_id);
-                const isCurrentValid = currentServer && Array.isArray(currentServer.domains) && 
+                const isCurrentValid = currentServer && Array.isArray(currentServer.domains) &&
                     currentServer.domains.some((d: string) => hostname.includes(d.toLowerCase()));
 
                 if (!isCurrentValid) {
-                    const matchedServer = servers.find(s => 
+                    const matchedServer = servers.find(s =>
                         Array.isArray(s.domains) && s.domains.some((d: string) => hostname.includes(d.toLowerCase()))
                     );
-                    
+
                     if (matchedServer) {
                         setData('server_id', matchedServer.id.toString());
                     }
@@ -42,10 +46,10 @@ export const usePlayer = (animeId: number, episodeId: number, players: any[] = [
 
     const isInvalidDomain = () => {
         if (!data.code) return false;
-        
+
         const code = data.code.toLowerCase().trim();
         const currentServer = servers.find(s => s.id.toString() === data.server_id);
-        
+
         if (!currentServer || !Array.isArray(currentServer.domains) || currentServer.domains.length === 0) {
             return false;
         }
@@ -61,32 +65,42 @@ export const usePlayer = (animeId: number, episodeId: number, players: any[] = [
             } else {
                 return !currentServer.domains.some((d: string) => code.includes(d.toLowerCase()));
             }
-            
+
             hostname = hostname.replace('www.', '');
-            
+
             return !currentServer.domains.some((d: string) => {
-                return hostname.includes(d.toLowerCase()); 
+                return hostname.includes(d.toLowerCase());
             });
-        } catch { 
-            return true; 
+        } catch {
+            return true;
         }
     };
 
-    const openCreateModal = (defaultServerId?: string) => {
+    const openCreateModal = (defaultServerId?: string, defaultLanguage?: string) => {
         setEditingPlayer(null);
+        setOriginalData(null);
+        setLocked(Boolean(defaultServerId && defaultLanguage));
         reset();
-        if (defaultServerId) {
-            setData('server_id', defaultServerId);
-        }
+        setData({
+            server_id: defaultServerId || '',
+            code: '',
+            languaje: defaultLanguage || '0',
+        });
         clearErrors();
         setIsModalOpen(true);
     };
 
     const openEditModal = (player: any) => {
         setEditingPlayer(player);
+        setLocked(true);
+        setOriginalData({
+            server_id: player.server_id.toString(),
+            code: playerEmbedUrl(player),
+            languaje: player.languaje,
+        });
         setData({
             server_id: player.server_id.toString(),
-            code: player.code,
+            code: playerEmbedUrl(player),
             languaje: player.languaje,
         });
         clearErrors();
@@ -97,6 +111,11 @@ export const usePlayer = (animeId: number, episodeId: number, players: any[] = [
         setIsModalOpen(false);
         reset();
     };
+
+    const isDirty = editingPlayer
+        ? originalData !== null &&
+          (data.server_id !== originalData.server_id || data.code !== originalData.code || data.languaje !== originalData.languaje)
+        : true;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -140,6 +159,8 @@ export const usePlayer = (animeId: number, episodeId: number, players: any[] = [
         }
     };
 
+    const groupedPlayers = groupPlayers(players, servers);
+
     return {
         data,
         setData,
@@ -151,6 +172,9 @@ export const usePlayer = (animeId: number, episodeId: number, players: any[] = [
         isDeleteModalOpen,
         editingPlayer,
         playerToDelete,
+        isDirty,
+        locked,
+        groupedPlayers,
         openCreateModal,
         openEditModal,
         closeModal,
@@ -160,4 +184,4 @@ export const usePlayer = (animeId: number, episodeId: number, players: any[] = [
         deletePlayer,
         switchToEditById,
     };
-};
+}

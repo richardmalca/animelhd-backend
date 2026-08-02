@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Admin\DashboardService;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Cache;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
@@ -18,15 +18,29 @@ class DashboardController extends Controller
 
     public function index()
     {
-        return Inertia::render('admin', [
+        return Inertia::render('admin/index', [
             'stats' => $this->dashboardService->getStats(),
         ]);
     }
 
     public function flushCache()
     {
-        Cache::flush();
+        try {
+            Cache::flush();
+        } catch (\Throwable $e) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => "No se pudo vaciar el caché: {$e->getMessage()}",
+            ]);
 
-        return back()->with('success', '¡Caché de Redis vaciado correctamente!');
+            return back();
+        }
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Caché vaciado correctamente.',
+        ]);
+
+        return back();
     }
 }

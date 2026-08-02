@@ -25,6 +25,8 @@ class ServerService
             $data['embed'] = $this->extractBaseUrl($data['embed']);
         }
 
+        $data = $this->ensureEmbedDomain($data);
+
         $server = Server::create($data);
         $this->clearCache();
         return $server;
@@ -35,6 +37,8 @@ class ServerService
         if (!empty($data['embed'])) {
             $data['embed'] = $this->extractBaseUrl($data['embed']);
         }
+
+        $data = $this->ensureEmbedDomain($data, $server->domains ?? []);
 
         $updated = $server->update($data);
         $this->clearCache();
@@ -64,5 +68,32 @@ class ServerService
         $host = $parsed['host'] ?? '';
 
         return "{$scheme}://{$host}";
+    }
+
+    private function ensureEmbedDomain(array $data, array $existingDomains = []): array
+    {
+        if (empty($data['embed'])) {
+            return $data;
+        }
+
+        $host = strtolower(parse_url($data['embed'], PHP_URL_HOST) ?? '');
+        $host = preg_replace('/^www\./', '', $host);
+
+        if ($host === '') {
+            return $data;
+        }
+
+        $short = explode('.', $host)[0];
+        $domains = array_values(array_unique(array_merge($existingDomains, $data['domains'] ?? [])));
+
+        foreach (array_unique([$short, $host]) as $domain) {
+            if (!in_array($domain, $domains, true)) {
+                $domains[] = $domain;
+            }
+        }
+
+        $data['domains'] = array_values($domains);
+
+        return $data;
     }
 }

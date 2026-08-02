@@ -11,7 +11,7 @@ interface SearchInputProps {
 
 export function SearchInput({ placeholder, value, onChange, className }: SearchInputProps) {
     return (
-        <div className={cn("relative flex-1 max-w-sm", className)}>
+        <div className={cn("relative flex-1 w-full md:max-w-sm", className)}>
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
                 placeholder={placeholder || "Buscar..."}

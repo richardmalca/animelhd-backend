@@ -1,12 +1,10 @@
-import { Head, Link } from '@inertiajs/react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Head } from '@inertiajs/react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import type { Anime, AnimeFilters, PaginatedData } from '@/types/anime';
 import { AnimeFiltersSection } from './components/anime-filters-section';
+import { AnimeIndexActions } from './components/anime-index-actions';
 import { AnimeTable } from './components/anime-table';
 import { useAnimeIndex } from './hooks/use-anime-index';
 
@@ -27,32 +25,12 @@ export default function AnimeIndex({
                 title="Animes"
                 subtitle="Gestiona el catálogo completo de series y películas"
             >
-                <Button
-                    onClick={actions.handleSyncAll}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 rounded-xl text-[10px] font-black tracking-widest uppercase"
-                    disabled={actions.isSyncingAll}
-                >
-                    <RefreshCw
-                        className={cn(
-                            'size-3',
-                            actions.isSyncingAll && 'animate-spin',
-                        )}
+                <div className="flex items-center gap-2">
+                    <AnimeIndexActions
+                        isSyncingAll={actions.isSyncingAll}
+                        onSyncAll={actions.handleSyncAll}
                     />
-                    <span>Sincronizar Todo</span>
-                </Button>
-                <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 rounded-xl text-[10px] font-black tracking-widest uppercase"
-                >
-                    <Link href="/admin/animes/import">
-                        <Plus className="size-3" />
-                        <span>Importar TMDB</span>
-                    </Link>
-                </Button>
+                </div>
             </PageHeader>
 
             <AnimeFiltersSection

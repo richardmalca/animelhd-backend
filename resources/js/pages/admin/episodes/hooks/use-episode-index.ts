@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 
-export const useEpisode = (defaultAnimeId?: string, nextEpisodeNumber: string | number = '1') => {
+export function useEpisodeIndex(defaultAnimeId?: string, nextEpisodeNumber: string | number = '1') {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [editingEpisode, setEditingEpisode] = useState<any>(null);
     const [episodeToDelete, setEpisodeToDelete] = useState<any>(null);
+    const [originalData, setOriginalData] = useState<{ number: string; anime_id: string } | null>(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         number: nextEpisodeNumber.toString(),
@@ -15,6 +16,7 @@ export const useEpisode = (defaultAnimeId?: string, nextEpisodeNumber: string | 
 
     const openCreateModal = () => {
         setEditingEpisode(null);
+        setOriginalData(null);
         reset();
         setData((prev) => ({
             ...prev,
@@ -27,6 +29,10 @@ export const useEpisode = (defaultAnimeId?: string, nextEpisodeNumber: string | 
 
     const openEditModal = (episode: any) => {
         setEditingEpisode(episode);
+        setOriginalData({
+            number: episode.number.toString(),
+            anime_id: episode.anime_id.toString(),
+        });
         setData({
             number: episode.number.toString(),
             anime_id: episode.anime_id.toString(),
@@ -73,6 +79,11 @@ export const useEpisode = (defaultAnimeId?: string, nextEpisodeNumber: string | 
         });
     };
 
+    const isDirty = editingEpisode
+        ? originalData !== null &&
+          (data.number !== originalData.number || data.anime_id !== originalData.anime_id)
+        : true;
+
     return {
         data,
         setData,
@@ -82,6 +93,7 @@ export const useEpisode = (defaultAnimeId?: string, nextEpisodeNumber: string | 
         isDeleteModalOpen,
         editingEpisode,
         episodeToDelete,
+        isDirty,
         openCreateModal,
         openEditModal,
         closeModal,
@@ -90,4 +102,4 @@ export const useEpisode = (defaultAnimeId?: string, nextEpisodeNumber: string | 
         submit,
         deleteEpisode,
     };
-};
+}

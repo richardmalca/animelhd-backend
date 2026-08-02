@@ -8,6 +8,7 @@ use App\Models\Anime;
 use App\Models\Server;
 use App\Services\Admin\EpisodeService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class EpisodeController extends Controller
@@ -40,7 +41,11 @@ class EpisodeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'number' => 'required|numeric',
+            'number' => [
+                'required',
+                'numeric',
+                Rule::unique('episodes')->where(fn ($query) => $query->where('anime_id', $request->input('anime_id'))),
+            ],
             'anime_id' => 'required|exists:animes,id',
         ]);
 
@@ -51,7 +56,13 @@ class EpisodeController extends Controller
     public function update(Request $request, Episode $episode)
     {
         $validated = $request->validate([
-            'number' => 'required|numeric',
+            'number' => [
+                'required',
+                'numeric',
+                Rule::unique('episodes')
+                    ->ignore($episode->id)
+                    ->where(fn ($query) => $query->where('anime_id', $request->input('anime_id', $episode->anime_id))),
+            ],
             'anime_id' => 'required|exists:animes,id',
         ]);
 

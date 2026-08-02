@@ -48,10 +48,9 @@ export function MalSearchDialog({
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-                            className="h-9 text-sm"
                         />
-                        <Button onClick={onSearch} disabled={isSearching} size="sm" className="h-9 px-3">
-                            <Search className={`size-4 ${isSearching ? 'animate-spin' : ''}`} />
+                        <Button onClick={onSearch} disabled={isSearching} size="default">
+                            <Search className={isSearching ? 'animate-spin' : ''} />
                         </Button>
                     </div>
                 </div>
@@ -63,14 +62,14 @@ export function MalSearchDialog({
                             <p className="mt-2 text-xs text-muted-foreground">Buscando en MAL...</p>
                         </div>
                     ) : results.length > 0 ? (
-                        <div className="grid gap-2 rounded-xl bg-muted/30 p-2 border border-muted">
+                        <div className="grid gap-2 border border-muted bg-muted/30 p-2">
                             {results.map((result: any) => (
                                 <div
                                     key={result.node.id}
                                     onClick={() => onSelect(result)}
-                                    className="flex cursor-pointer items-center gap-3 rounded-lg border p-2 transition-all hover:border-primary hover:bg-primary/5 group"
+                                    className="group flex cursor-pointer items-center gap-3 border p-2 transition-all hover:border-primary hover:bg-primary/5"
                                 >
-                                    <div className="size-12 shrink-0 overflow-hidden rounded-md bg-muted">
+                                    <div className="size-12 shrink-0 overflow-hidden bg-muted">
                                         {result.node.main_picture ? (
                                             <img
                                                 src={result.node.main_picture.medium}
@@ -84,15 +83,15 @@ export function MalSearchDialog({
                                         )}
                                     </div>
                                     <div className="flex min-w-0 flex-1 flex-col">
-                                        <p className="line-clamp-2 text-sm font-semibold leading-tight group-hover:text-primary transition-colors">
+                                        <p className="line-clamp-2 text-sm font-semibold leading-tight transition-colors group-hover:text-primary">
                                             {result.node.title}
                                         </p>
-                                        <p className="mt-1 text-[10px] font-mono text-muted-foreground">
+                                        <p className="mt-1 font-mono text-xs text-muted-foreground">
                                             MAL ID: {result.node.id}
                                         </p>
                                     </div>
                                     <div className="shrink-0 opacity-0 transition-all group-hover:opacity-100">
-                                        <Button variant="secondary" size="sm" className="h-8 px-2 text-[10px]">
+                                        <Button variant="secondary" size="xs">
                                             Seleccionar
                                         </Button>
                                     </div>

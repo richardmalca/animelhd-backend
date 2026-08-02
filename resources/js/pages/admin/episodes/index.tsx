@@ -1,20 +1,13 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { PageHeader } from '@/components/page-header';
-import { Plus, Layers, ArrowLeft } from 'lucide-react';
-import { EpisodeModal } from './episode-modal';
-import { useEpisode } from '@/hooks/use-episode';
-import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { Head } from '@inertiajs/react';
+import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { PageHeader } from '@/components/page-header';
+import { Pagination } from '@/components/pagination';
 import AppLayout from '@/layouts/app-layout';
-import { EpisodeListRow } from './components/episode-list-row';
+import { EpisodeIndexActions } from './components/episode-index-actions';
+import { EpisodeModal } from './components/episode-modal';
+import { EpisodeTable } from './components/episode-table';
+import { useEpisodeIndex } from './hooks/use-episode-index';
 
 export default function EpisodeIndex({
     episodes,
@@ -36,6 +29,7 @@ export default function EpisodeIndex({
         isDeleteModalOpen,
         editingEpisode,
         episodeToDelete,
+        isDirty,
         openCreateModal,
         openEditModal,
         closeModal,
@@ -43,7 +37,7 @@ export default function EpisodeIndex({
         confirmDelete,
         submit,
         deleteEpisode,
-    } = useEpisode(anime?.id?.toString(), next_episode_number);
+    } = useEpisodeIndex(anime?.id?.toString(), next_episode_number);
 
     return (
         <div className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
@@ -51,95 +45,43 @@ export default function EpisodeIndex({
 
             <PageHeader
                 title={
-                    <div className="flex items-center gap-3">
+                    <span className="flex flex-col gap-2">
+                        <span className="flex items-center gap-2">
+                            <span>Episodios</span>
+                            <Badge variant="secondary">{episodes.total} episodios</Badge>
+                        </span>
                         {anime && (
-                            <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-                                <Link href="/admin/animes">
-                                    <ArrowLeft className="size-4" />
-                                </Link>
-                            </Button>
+                            <span className="max-w-sm text-base font-normal text-muted-foreground line-clamp-2 md:hidden">
+                                {anime.name}
+                            </span>
                         )}
-                        <div className="flex items-center gap-2">
-                            <Layers className="size-6 text-muted-foreground" />
-                            {anime ? `Episodios de ${anime.name}` : 'Episodios'}
-                        </div>
-                    </div>
+                    </span>
                 }
-                subtitle={anime ? `Gestionando capítulos de la serie` : 'Administra los capítulos de todas las series'}
+                subtitle={anime ? anime.name : 'Administra los capítulos de todas las series'}
             >
-                <div className="flex gap-2">
-                    {anime && (
-                        <Button variant="outline" asChild className="gap-2">
-                            <Link href={`/admin/animes/${anime.id}/episodes/import`}>
-                                <Layers className="size-4" />
-                                <span>Importador</span>
-                            </Link>
-                        </Button>
-                    )}
-                    <Button onClick={openCreateModal} className="gap-2">
-                        <Plus className="size-4" />
-                        <span>Nuevo Episodio</span>
-                    </Button>
+                <div className="flex items-center gap-2">
+                    <EpisodeIndexActions
+                        animeId={anime?.id}
+                        onCreate={openCreateModal}
+                    />
                 </div>
             </PageHeader>
 
-            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-                <Table>
-                    <TableHeader>
-                        <TableRow className="bg-muted/50">
-                            <TableHead className="w-[80px]">ID</TableHead>
-                            {!anime && <TableHead>Anime</TableHead>}
-                            <TableHead>Episodio</TableHead>
-                            <TableHead>Vistas Web</TableHead>
-                            <TableHead>Vistas App</TableHead>
-                            <TableHead>Fecha</TableHead>
-                            <TableHead className="px-6 text-right">Acciones</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {episodes.data.map((episode: any) => (
-                            <EpisodeListRow 
-                                key={episode.id}
-                                episode={episode}
-                                animeId={anime?.id}
-                                showAnimeName={!anime}
-                                onEdit={openEditModal}
-                                onDelete={confirmDelete}
-                            />
-                        ))}
-                        {episodes.data.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={anime ? 6 : 7} className="h-32 text-center text-muted-foreground">
-                                    No se han encontrado episodios.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+            <EpisodeTable
+                episodes={episodes}
+                animeId={anime?.id}
+                showAnimeName={!anime}
+                onEdit={openEditModal}
+                onDelete={confirmDelete}
+            />
 
-            <div className="flex items-center justify-between pt-4">
-                <p className="text-xs text-muted-foreground">
-                    Mostrando {episodes.from} a {episodes.to} de {episodes.total} episodios
-                </p>
-                <div className="flex gap-1">
-                    {episodes.links.map((link: any, index: number) => (
-                        <Button
-                            key={index}
-                            variant={link.active ? 'default' : 'outline'}
-                            size="sm"
-                            asChild
-                            disabled={!link.url}
-                            className={!link.url ? 'pointer-events-none opacity-50' : ''}
-                        >
-                            <Link
-                                href={link.url || '#'}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        </Button>
-                    ))}
-                </div>
-            </div>
+            <Pagination
+                links={episodes.links}
+                from={episodes.from}
+                to={episodes.to}
+                total={episodes.total}
+                label="episodios"
+            />
 
             <EpisodeModal
                 isOpen={isModalOpen}
@@ -150,6 +92,7 @@ export default function EpisodeIndex({
                 errors={errors}
                 processing={processing}
                 editingEpisode={editingEpisode}
+                isDirty={isDirty}
                 anime={anime}
                 animes={animes}
             />

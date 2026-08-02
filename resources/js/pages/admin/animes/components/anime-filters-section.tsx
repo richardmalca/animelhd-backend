@@ -1,4 +1,7 @@
+import { Filter } from 'lucide-react';
+import { useState } from 'react';
 import { SearchInput } from '@/components/search-input';
+import { Button } from '@/components/ui/button';
 import {
     Select,
     SelectContent,
@@ -16,21 +19,14 @@ interface AnimeFiltersSectionProps {
     setStatus: (value: string) => void;
 }
 
-export function AnimeFiltersSection({
-    search,
-    setSearch,
+function TypeAndStatusSelects({
     type,
     setType,
     status,
     setStatus,
-}: AnimeFiltersSectionProps) {
+}: Pick<AnimeFiltersSectionProps, 'type' | 'setType' | 'status' | 'setStatus'>) {
     return (
-        <div className="flex flex-col gap-4 md:flex-row">
-            <SearchInput 
-                placeholder="Buscar anime por título..."
-                value={search}
-                onChange={setSearch}
-            />
+        <>
             <Select value={type} onValueChange={setType}>
                 <SelectTrigger className="w-full md:w-[150px]">
                     <SelectValue placeholder="Tipo" />
@@ -56,6 +52,56 @@ export function AnimeFiltersSection({
                     <SelectItem value="3">Próximamente</SelectItem>
                 </SelectContent>
             </Select>
+        </>
+    );
+}
+
+export function AnimeFiltersSection({
+    search,
+    setSearch,
+    type,
+    setType,
+    status,
+    setStatus,
+}: AnimeFiltersSectionProps) {
+    const [showFilters, setShowFilters] = useState(false);
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+                <SearchInput
+                    placeholder="Buscar anime por título..."
+                    value={search}
+                    onChange={setSearch}
+                />
+                <Button
+                    className="md:hidden"
+                    variant={showFilters ? 'secondary' : 'outline'}
+                    onClick={() => setShowFilters((value) => !value)}
+                    aria-expanded={showFilters}
+                >
+                    <Filter />
+                    <span>Filtros</span>
+                </Button>
+                <div className="hidden items-center gap-2 md:flex">
+                    <TypeAndStatusSelects
+                        type={type}
+                        setType={setType}
+                        status={status}
+                        setStatus={setStatus}
+                    />
+                </div>
+            </div>
+            {showFilters && (
+                <div className="grid grid-cols-2 gap-4 md:hidden">
+                    <TypeAndStatusSelects
+                        type={type}
+                        setType={setType}
+                        status={status}
+                        setStatus={setStatus}
+                    />
+                </div>
+            )}
         </div>
     );
 }

@@ -9,10 +9,16 @@ use App\Models\Player;
 use App\Models\Server;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardService
 {
     public function getStats(): array
+    {
+        return Cache::remember('admin.dashboard.stats', 60, fn () => $this->computeStats());
+    }
+
+    private function computeStats(): array
     {
         $startOfWeek = Carbon::now()->startOfWeek();
 
@@ -41,8 +47,8 @@ class DashboardService
                 'total' => Server::count(),
                 'this_week' => Server::where('created_at', '>=', $startOfWeek)->count(),
             ],
-            'recent_animes' => Anime::latest()->take(5)->get(['id', 'name', 'slug', 'poster', 'created_at']),
-            'recent_episodes' => Episode::with('anime:id,name')->latest()->take(5)->get(['id', 'anime_id', 'number', 'created_at']),
+            'recent_animes' => Anime::latest()->take(5)->get(['id', 'name', 'slug', 'poster', 'created_at'])->values()->toArray(),
+            'recent_episodes' => Episode::with('anime:id,name')->latest()->take(5)->get(['id', 'anime_id', 'number', 'created_at'])->values()->toArray(),
         ];
     }
 }

@@ -4,133 +4,22 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Anime;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Http;
-use Inertia\Inertia;
-
-use App\Services\Admin\TmdbService;
-use App\Services\Admin\MalService;
+use App\Models\Genre;
 use App\Services\Admin\AnimeService;
-use Illuminate\Support\Str;
+use App\Services\Admin\MalService;
+use App\Services\Admin\TmdbService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Inertia\Inertia;
 
 class AnimeController extends Controller
 {
-    protected $tmdbService;
-    protected $malService;
-    protected $animeService;
-
-    public function __construct(TmdbService $tmdbService, MalService $malService, AnimeService $animeService)
-    {
-        $this->tmdbService = $tmdbService;
-        $this->malService = $malService;
-        $this->animeService = $animeService;
-    }
-
-    public function malSearch(Request $request)
-    {
-        $request->validate(['query' => 'required|string|min:2']);
-        
-        try {
-            $data = $this->malService->search($request->query('query'));
-            return response()->json($data);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    public function malDetails($malId)
-    {
-        try {
-            $data = $this->malService->getDetails($malId);
-            
-            // Lógica de mapeo movida al backend
-            $altTitles = [];
-            if (isset($data['alternative_titles'])) {
-                if (!empty($data['alternative_titles']['en'])) $altTitles[] = $data['alternative_titles']['en'];
-                if (!empty($data['alternative_titles']['ja'])) $altTitles[] = $data['alternative_titles']['ja'];
-                if (!empty($data['alternative_titles']['synonyms'])) {
-                    $altTitles = array_merge($altTitles, $data['alternative_titles']['synonyms']);
-                }
-            }
-
-            $genres = [];
-            if (isset($data['genres'])) {
-                foreach ($data['genres'] as $genre) {
-                    $dbGenre = \App\Models\Genre::whereRaw('LOWER(name_mal) = ?', [strtolower(trim($genre['name']))])
-                        ->orWhereRaw('LOWER(title) = ?', [strtolower(trim($genre['name']))])
-                        ->first();
-                    if ($dbGenre) {
-                        $genres[] = $dbGenre->slug;
-                    }
-                }
-            }
-
-            $malGenresRaw = [];
-            if (isset($data['genres'])) {
-                foreach ($data['genres'] as $genre) {
-                    $dbGenre = \App\Models\Genre::whereRaw('LOWER(name_mal) = ?', [strtolower(trim($genre['name']))])
-                        ->orWhereRaw('LOWER(title) = ?', [strtolower(trim($genre['name']))])
-                        ->first();
-                    $malGenresRaw[] = [
-                        'name' => $genre['name'],
-                        'slug' => $dbGenre ? $dbGenre->slug : null
-                    ];
-                }
-            }
-
-            $mapped = [
-                'name' => $data['title'] ?? '',
-                'vote_average' => $data['mean'] ?? 0,
-                'popularity' => $data['num_scoring_users'] ?? 0,
-                'rating' => $data['rating'] ?? '',
-                'premiered' => isset($data['start_season']) ? ucfirst($data['start_season']['season']) . ' ' . $data['start_season']['year'] : '',
-                'altTitles' => array_values(array_unique($altTitles)),
-                'mappedGenres' => array_values(array_unique($genres)),
-                'malGenresRaw' => $malGenresRaw,
-                'status' => $this->mapMalStatus($data['status'] ?? ''),
-                'broadcast' => $this->mapMalBroadcast($data['broadcast']['day_of_the_week'] ?? ''),
-            ];
-
-            return response()->json($mapped);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    private function mapMalStatus($status)
-    {
-        return [
-            'currently_airing' => 1,
-            'finished_airing' => 0,
-            'not_yet_aired' => 3,
-        ][$status] ?? 1;
-    }
-
-    private function mapMalBroadcast($day)
-    {
-        return [
-            'monday' => 1, 'tuesday' => 2, 'wednesday' => 3, 'thursday' => 4,
-            'friday' => 5, 'saturday' => 6, 'sunday' => 7,
-        ][$day] ?? 0;
-    }
-
-    public function malSync(Anime $anime)
-    {
-        if (!$anime->mal_id) {
-            return back()->withErrors(['error' => 'Este anime no tiene un ID de MyAnimeList vinculado']);
-        }
-
-        try {
-            $data = $this->malService->getDetails($anime->mal_id);
-            $this->animeService->updateFromMalData($anime, $data);
-
-            return back()->with('success', "{$anime->name} sincronizado correctamente con MyAnimeList");
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => $e->getMessage()]);
-        }
+    public function __construct(
+        protected TmdbService $tmdbService,
+        protected MalService $malService,
+        protected AnimeService $animeService,
+    ) {
     }
 
     public function index(Request $request)
@@ -146,12 +35,8 @@ class AnimeController extends Controller
                     }
                 });
             })
-            ->when($request->input('status'), function ($query, $status) {
-                $query->where('status', $status);
-            })
-            ->when($request->input('type'), function ($query, $type) {
-                $query->where('type', $type);
-            })
+            ->when($request->input('status'), fn ($query, $status) => $query->where('status', $status))
+            ->when($request->input('type'), fn ($query, $type) => $query->where('type', $type))
             ->orderBy('id', 'desc')
             ->paginate(10)
             ->withQueryString();
@@ -162,87 +47,14 @@ class AnimeController extends Controller
         ]);
     }
 
-    public function import()
-    {
-        return Inertia::render('admin/animes/import', [
-            'hasApiKey' => !empty($this->tmdbService->getApiKey())
-        ]);
-    }
-
-    public function tmdbSearch(Request $request)
-    {
-        $request->validate(['query' => 'required|string|min:2']);
-        
-        try {
-            $data = $this->tmdbService->search($request->query('query'));
-            
-            if (isset($data['results'])) {
-                $tmdbIds = collect($data['results'])->pluck('id')->filter()->toArray();
-                
-                $slugs = collect($data['results'])->map(function ($item) {
-                    $name = $item['name'] ?? $item['title'] ?? '';
-                    return Str::slug($name);
-                })->filter()->toArray();
-
-                $existingTmdbIds = Anime::whereIn('tmdb_id', $tmdbIds)->pluck('tmdb_id')->toArray();
-                $existingSlugs = Anime::whereIn('slug', $slugs)->pluck('slug')->toArray();
-
-                $data['results'] = collect($data['results'])->map(function ($item) use ($existingTmdbIds, $existingSlugs) {
-                    $name = $item['name'] ?? $item['title'] ?? '';
-                    $slug = Str::slug($name);
-                    
-                    $item['exists'] = in_array($item['id'], $existingTmdbIds) || in_array($slug, $existingSlugs);
-                    return $item;
-                });
-            }
-
-            return response()->json($data);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
     public function edit(Anime $anime)
     {
-        $anime->rating = $this->normalizeRatingBackend($anime->rating);
-        
-        return Inertia::render('admin/animes/edit', [
+        $anime->rating = $this->animeService->normalizeRatingForDisplay($anime->rating);
+
+        return Inertia::render('admin/animes/edit/index', [
             'anime' => $anime,
-            'genres' => \App\Models\Genre::all(['title', 'slug'])
+            'genres' => Genre::all(['title', 'slug']),
         ]);
-    }
-
-    private function normalizeRatingBackend(?string $rating): string
-    {
-        if (!$rating) return 'Selecciona una clasificación';
-
-        $cleanRating = strtolower(trim($rating));
-
-        if (str_contains($cleanRating, 'pg-13') || str_contains($cleanRating, 'pg_13') || str_contains($cleanRating, 'teens') || str_contains($cleanRating, 'mayores de 13')) {
-            return 'Apto para mayores de 13 años';
-        }
-
-        if ($cleanRating === 'g' || str_contains($cleanRating, 'all ages') || str_contains($cleanRating, 'todos los públicos')) {
-            return 'Apto para todos los públicos';
-        }
-
-        if ($cleanRating === 'pg' || str_contains($cleanRating, 'children') || str_contains($cleanRating, 'niños')) {
-            return 'Apto para niños';
-        }
-
-        if ($cleanRating === 'r' || str_contains($cleanRating, '17+') || (str_contains($cleanRating, 'mayores de 17') && !str_contains($cleanRating, 'restringido'))) {
-            return 'Apto para mayores de 17 años';
-        }
-
-        if ($cleanRating === 'r+' || str_contains($cleanRating, 'restringido') || str_contains($cleanRating, 'mild nudity')) {
-            return 'Apto para mayores de 17 años (Restringido)';
-        }
-
-        if ($cleanRating === 'rx' || str_contains($cleanRating, 'hentai') || str_contains($cleanRating, 'adults') || str_contains($cleanRating, 'adultos')) {
-            return 'Contenido para adultos';
-        }
-
-        return 'Selecciona una clasificación';
     }
 
     public function update(Request $request, Anime $anime)
@@ -271,9 +83,62 @@ class AnimeController extends Controller
         ]);
 
         $anime->update($validated);
-        $this->animeService->clearCache($anime->slug);
+        $this->animeService->clearCache();
 
         return redirect()->route('admin.animes.index')->with('success', "{$anime->name} actualizado correctamente");
+    }
+
+    public function destroy(Anime $anime)
+    {
+        $anime->delete();
+        $this->animeService->clearCache();
+
+        return redirect()->route('admin.animes.index');
+    }
+
+    public function checkSlug(Request $request)
+    {
+        $request->validate([
+            'slug' => 'required|string',
+            'exclude_id' => 'nullable|integer',
+        ]);
+
+        $exists = Anime::where('slug', $request->slug)
+            ->when($request->exclude_id, fn ($q) => $q->where('id', '!=', $request->exclude_id))
+            ->exists();
+
+        if (!$exists) {
+            return response()->json(['available' => true]);
+        }
+
+        return response()->json([
+            'available' => false,
+            'suggestion' => $this->animeService->generateUniqueSlug($request->slug, $request->exclude_id),
+        ]);
+    }
+
+    public function import()
+    {
+        return Inertia::render('admin/animes/import', [
+            'hasApiKey' => !empty($this->tmdbService->getApiKey()),
+        ]);
+    }
+
+    public function tmdbSearch(Request $request)
+    {
+        $request->validate(['query' => 'required|string|min:2']);
+
+        try {
+            $data = $this->tmdbService->search($request->query('query'));
+
+            if (isset($data['results'])) {
+                $data['results'] = $this->animeService->markExistingTmdbResults($data['results']);
+            }
+
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function storeFromTmdb(Request $request)
@@ -302,7 +167,6 @@ class AnimeController extends Controller
         try {
             $tmdbType = $anime->type === 'Movie' ? 'movie' : 'tv';
             $data = $this->tmdbService->getDetails($anime->tmdb_id, $tmdbType);
-            
             $this->animeService->updateFromTmdbData($anime, $data);
 
             return back()->with('success', "{$anime->name} sincronizado correctamente con TMDB");
@@ -310,58 +174,61 @@ class AnimeController extends Controller
             return back()->withErrors(['error' => $e->getMessage()]);
         }
     }
-    public function checkSlug(Request $request)
+
+    public function malSearch(Request $request)
     {
-        $request->validate([
-            'slug' => 'required|string',
-            'exclude_id' => 'nullable|integer'
-        ]);
+        $request->validate(['query' => 'required|string|min:2']);
 
-        $slug = $request->slug;
-        $excludeId = $request->exclude_id;
-        
-        $exists = Anime::where('slug', $slug)
-            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
-            ->exists();
-
-        if (!$exists) {
-            return response()->json(['available' => true]);
+        try {
+            return response()->json($this->malService->search($request->query('query')));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        $i = 2;
-        $newSlug = $slug;
-        while (Anime::where('slug', $newSlug . '-' . $i)->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))->exists()) {
-            $i++;
-        }
-
-        return response()->json([
-            'available' => false,
-            'suggestion' => $slug . '-' . $i
-        ]);
     }
 
-    public function syncProgress()
+    public function malDetails($malId)
     {
-        return response()->json(\Illuminate\Support\Facades\Cache::get('anime_sync_progress', ['active' => false]));
+        try {
+            $data = $this->malService->getDetails($malId);
+
+            return response()->json($this->animeService->mapMalPreview($data));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
-    public function stopSync()
+    public function malSync(Anime $anime)
     {
-        \Illuminate\Support\Facades\Cache::put('anime_sync_stop', true, 60);
-        return response()->json(['message' => 'Se ha enviado la señal de parada']);
+        if (!$anime->mal_id) {
+            return back()->withErrors(['error' => 'Este anime no tiene un ID de MyAnimeList vinculado']);
+        }
+
+        try {
+            $data = $this->malService->getDetails($anime->mal_id);
+            $this->animeService->updateFromMalData($anime, $data);
+
+            return back()->with('success', "{$anime->name} sincronizado correctamente con MyAnimeList");
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 
     public function syncAllMal()
     {
         Artisan::queue('anime:sync-all-mal');
+
         return back()->with('success', 'Se ha iniciado la sincronización masiva con MyAnimeList en segundo plano.');
     }
 
-    public function destroy(Anime $anime)
+    public function syncProgress()
     {
-        $slug = $anime->slug;
-        $anime->delete();
-        $this->animeService->clearCache($slug);
-        return redirect()->route('admin.animes.index');
+        return response()->json(Cache::get('anime_sync_progress', ['active' => false]));
+    }
+
+    public function stopSync()
+    {
+        Cache::put('anime_sync_stop', true, 60);
+
+        return response()->json(['message' => 'Se ha enviado la señal de parada']);
     }
 }

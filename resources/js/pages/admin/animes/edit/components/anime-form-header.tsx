@@ -1,5 +1,4 @@
-import { Link } from '@inertiajs/react';
-import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface AnimeFormHeaderProps {
@@ -20,18 +19,8 @@ export function AnimeFormHeader({
     onSubmit,
 }: AnimeFormHeaderProps) {
     return (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    asChild
-                    className="h-9 w-9"
-                >
-                    <Link href="/admin/animes">
-                        <ArrowLeft className="size-4" />
-                    </Link>
-                </Button>
                 <div>
                     <h1 className="text-xl font-semibold tracking-tight text-foreground">
                         Editar Anime
@@ -41,31 +30,19 @@ export function AnimeFormHeader({
                     </p>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 gap-2"
                     onClick={onSyncWithMal}
                     disabled={!hasMalId || isSyncingMal}
                     type="button"
                 >
-                    <RefreshCw
-                        className={`size-4 ${isSyncingMal ? 'animate-spin' : ''}`}
-                    />
+                    <RefreshCw className={isSyncingMal ? 'animate-spin' : ''} />
                     <span>Sincronizar con MAL</span>
                 </Button>
-                <Button
-                    onClick={onSubmit}
-                    disabled={processing || !hasMalId}
-                    className="h-9 gap-2"
-                    type="button"
-                >
-                    {processing ? (
-                        <RefreshCw className="size-4 animate-spin" />
-                    ) : (
-                        <Save className="size-4" />
-                    )}
+                <Button onClick={onSubmit} disabled={processing || !hasMalId} type="button">
+                    {processing ? <RefreshCw className="animate-spin" /> : <Save />}
                     <span>
                         {processing ? 'Guardando...' : 'Guardar cambios'}
                     </span>
