@@ -31,6 +31,7 @@ class Anime extends Model
         'views_app',
         'isTopic',
         'mal_id',
+        'anilist_id',
         'tmdb_id',
         'short_name',
         'rating',
