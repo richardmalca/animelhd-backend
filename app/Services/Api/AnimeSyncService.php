@@ -13,7 +13,35 @@ class AnimeSyncService
 
     // Se incrementa cuando cambian los campos que devuelve el payload,
     // para invalidar automáticamente el caché sin esperar a que cambie un anime.
-    private const SCHEMA_VERSION = 2;
+    private const SCHEMA_VERSION = 3;
+
+    private const FIELDS = [
+        'id',
+        'name',
+        'name_alternative',
+        'slug',
+        'overview',
+        'poster',
+        'banner',
+        'aired',
+        'type',
+        'status',
+        'premiered',
+        'broadcast',
+        'airing',
+        'genres',
+        'vote_average',
+        'prequel',
+        'sequel',
+        'related',
+        'views_app',
+        'mal_id',
+        'anilist_id',
+        'tmdb_id',
+        'rating',
+        'popularity',
+        'trailer',
+    ];
 
     public function getVersion(): array
     {
@@ -35,13 +63,9 @@ class AnimeSyncService
 
         return Cache::remember($cacheKey, self::PAYLOAD_TTL, function () {
             return Anime::query()
-                ->select(['id', 'anilist_id'])
+                ->select(self::FIELDS)
                 ->orderBy('id')
                 ->get()
-                ->map(fn (Anime $anime) => [
-                    'id' => $anime->id,
-                    'anilist_id' => $anime->anilist_id,
-                ])
                 ->toArray();
         });
     }
