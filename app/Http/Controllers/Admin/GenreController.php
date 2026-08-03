@@ -56,10 +56,4 @@ class GenreController extends Controller
         $this->genreService->delete($genre);
         return back()->with('success', 'Género eliminado correctamente');
     }
-
-    public function malSync()
-    {
-        $this->genreService->syncFromMal();
-        return back();
-    }
 }

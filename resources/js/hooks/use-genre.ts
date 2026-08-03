@@ -118,21 +118,6 @@ export function useGenre(initialFilters: any = {}) {
         });
     };
 
-    const syncWithMal = () => {
-        const promise = new Promise((resolve, reject) => {
-            router.post('/admin/genres/mal-sync', {}, {
-                onSuccess: () => resolve(true),
-                onError: (errors) => reject(errors),
-            });
-        });
-
-        toast.promise(promise, {
-            loading: 'Sincronizando con MyAnimeList...',
-            success: 'Sincronización completada',
-            error: 'Error al sincronizar con MAL',
-        });
-    };
-
     return {
         data,
         setData,
@@ -149,7 +134,6 @@ export function useGenre(initialFilters: any = {}) {
         confirmDelete,
         submit,
         deleteGenre,
-        syncWithMal,
         search,
         setSearch,
     };

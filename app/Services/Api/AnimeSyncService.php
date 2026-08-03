@@ -13,7 +13,7 @@ class AnimeSyncService
 
     // Se incrementa cuando cambian los campos que devuelve el payload,
     // para invalidar automáticamente el caché sin esperar a que cambie un anime.
-    private const SCHEMA_VERSION = 3;
+    private const SCHEMA_VERSION = 4;
 
     private const FIELDS = [
         'id',
@@ -28,7 +28,6 @@ class AnimeSyncService
         'status',
         'premiered',
         'broadcast',
-        'airing',
         'genres',
         'vote_average',
         'prequel',

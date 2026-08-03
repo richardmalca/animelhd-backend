@@ -1,7 +1,7 @@
-import { Edit, Trash2, Server as ServerIcon } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 
 interface ServerListRowProps {
     server: any;
@@ -20,14 +20,9 @@ export function ServerListRow({
                 #{server.id}
             </TableCell>
             <TableCell>
-                <div className="flex items-center gap-3">
-                    <div className="rounded-md bg-primary/10 p-2 text-primary">
-                        <ServerIcon className="size-4" />
-                    </div>
-                    <span className="font-medium">
-                        {server.title}
-                    </span>
-                </div>
+                <span className="font-medium">
+                    {server.title}
+                </span>
             </TableCell>
             <TableCell>
                 <span className="text-sm text-muted-foreground font-mono">
@@ -56,21 +51,11 @@ export function ServerListRow({
             </TableCell>
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onEdit(server)}
-                    >
-                        <Edit className="size-4" />
+                    <Button variant="secondary" size="icon" onClick={() => onEdit(server)}>
+                        <Edit />
                     </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => onDelete(server)}
-                    >
-                        <Trash2 className="size-4" />
+                    <Button variant="destructive" size="icon" onClick={() => onDelete(server)}>
+                        <Trash2 />
                     </Button>
                 </div>
             </TableCell>

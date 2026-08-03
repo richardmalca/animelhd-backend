@@ -1,7 +1,7 @@
-import { Edit, Trash2, Tag } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 
 interface GenreListRowProps {
     genre: any;
@@ -20,14 +20,9 @@ export function GenreListRow({
                 #{genre.id}
             </TableCell>
             <TableCell>
-                <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-primary/10 p-2 text-primary">
-                        <Tag className="size-4" />
-                    </div>
-                    <span className="font-medium">
-                        {genre.title}
-                    </span>
-                </div>
+                <span className="font-medium">
+                    {genre.title}
+                </span>
             </TableCell>
             <TableCell>
                 <Badge variant="secondary" className="font-normal">
@@ -41,21 +36,11 @@ export function GenreListRow({
             </TableCell>
             <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onEdit(genre)}
-                    >
-                        <Edit className="size-4" />
+                    <Button variant="secondary" size="icon" onClick={() => onEdit(genre)}>
+                        <Edit />
                     </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => onDelete(genre)}
-                    >
-                        <Trash2 className="size-4" />
+                    <Button variant="destructive" size="icon" onClick={() => onDelete(genre)}>
+                        <Trash2 />
                     </Button>
                 </div>
             </TableCell>

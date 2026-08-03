@@ -47,7 +47,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/settings', [SettingsController::class, 'index'])->name('admin.settings');
     Route::post('admin/settings', [SettingsController::class, 'update'])->name('admin.settings.update');
     
-    Route::post('admin/genres/mal-sync', [GenreController::class, 'malSync'])->name('admin.genres.mal-sync');
     Route::resource('admin/genres', GenreController::class)->names('admin.genres')->except(['show', 'create', 'edit']);
 
     Route::resource('admin/servers', ServerController::class)->except(['create', 'show', 'edit']);

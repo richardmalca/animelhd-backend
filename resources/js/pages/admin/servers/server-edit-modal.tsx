@@ -1,3 +1,6 @@
+import InputError from '@/components/input-error';
+import { TagInput } from '@/components/tag-input';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -6,12 +9,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import InputError from '@/components/input-error';
-import { TagInput } from '@/components/tag-input';
 
 export function ServerEditModal({
     isOpen,
