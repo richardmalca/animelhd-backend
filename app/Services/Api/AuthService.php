@@ -3,8 +3,8 @@
 namespace App\Services\Api;
 
 use App\Models\User;
+use App\Services\SettingsService;
 use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -12,15 +12,13 @@ use Illuminate\Support\Facades\Log;
 
 class AuthService
 {
+    public function __construct(protected SettingsService $settingsService)
+    {
+    }
+
     public function sendResetLink(string $email)
     {
-        $settingsFile = storage_path('app/settings.json');
-        $settings = [];
-        if (File::exists($settingsFile)) {
-            $settings = json_decode(File::get($settingsFile), true);
-        }
-
-        if (empty($settings['frontend_url'])) {
+        if (empty($this->settingsService->get('frontend_url'))) {
             return ['status' => 'maintenance', 'message' => 'Servicio de recuperación no disponible por el momento.'];
         }
 

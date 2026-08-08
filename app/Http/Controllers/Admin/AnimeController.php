@@ -215,14 +215,46 @@ class AnimeController extends Controller
 
     public function syncAllMal()
     {
+        $progress = Cache::get('anime_sync_progress', ['active' => false]);
+
+        if (!empty($progress['active'])) {
+            return back()->withErrors(['error' => 'Ya hay una sincronización masiva en curso.']);
+        }
+
+        Cache::forget('anime_sync_stop');
+        Cache::put('anime_sync_progress', [
+            'active' => true,
+            'current' => 0,
+            'total' => 0,
+            'last_anime' => null,
+            'updated_at' => now()->timestamp,
+        ], 3600);
+
         Artisan::queue('anime:sync-all-mal');
 
         return back()->with('success', 'Se ha iniciado la sincronización masiva con MyAnimeList en segundo plano.');
     }
 
+    /**
+     * Cuánto puede pasar sin heartbeat antes de considerar el job "muerto"
+     * (worker caído, servidor reiniciado, etc.) en vez de simplemente lento.
+     */
+    protected const SYNC_STALE_SECONDS = 30;
+
     public function syncProgress()
     {
-        return response()->json(Cache::get('anime_sync_progress', ['active' => false]));
+        $progress = Cache::get('anime_sync_progress', ['active' => false]);
+
+        if (!empty($progress['active']) && isset($progress['updated_at'])) {
+            $secondsSinceHeartbeat = now()->timestamp - $progress['updated_at'];
+
+            if ($secondsSinceHeartbeat > self::SYNC_STALE_SECONDS) {
+                Cache::forget('anime_sync_progress');
+                $progress = ['active' => false, 'stale' => true];
+            }
+        }
+
+        return response()->json($progress);
     }
 
     public function stopSync()

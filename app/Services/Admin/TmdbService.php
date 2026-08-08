@@ -2,8 +2,8 @@
 
 namespace App\Services\Admin;
 
+use App\Services\SettingsService;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\File;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
@@ -12,14 +12,13 @@ class TmdbService
 {
     protected string $baseUrl = 'https://api.themoviedb.org/3';
 
+    public function __construct(protected SettingsService $settingsService)
+    {
+    }
+
     public function getApiKey(): ?string
     {
-        $settingsFile = storage_path('app/settings.json');
-        if (File::exists($settingsFile)) {
-            $settings = json_decode(File::get($settingsFile), true);
-            return $settings['tmdb_api_key'] ?? null;
-        }
-        return null;
+        return $this->settingsService->get('tmdb_api_key');
     }
 
     public function search(string $query)

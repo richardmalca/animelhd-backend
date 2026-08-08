@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'app_key_header' => [
+        'key' => env('X_APP_KEY'),
+    ],
+
 ];

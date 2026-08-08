@@ -38,14 +38,11 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification($token)
     {
-        $settingsFile = storage_path('app/settings.json');
         $frontendUrl = config('app.url');
+        $configuredUrl = app(\App\Services\SettingsService::class)->get('frontend_url');
 
-        if (file_exists($settingsFile)) {
-            $settings = json_decode(file_get_contents($settingsFile), true);
-            if (!empty($settings['frontend_url'])) {
-                $frontendUrl = rtrim($settings['frontend_url'], '/');
-            }
+        if (!empty($configuredUrl)) {
+            $frontendUrl = rtrim($configuredUrl, '/');
         }
 
         $url = $frontendUrl . '/reset-password/' . $token . '?email=' . $this->email;

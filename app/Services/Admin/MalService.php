@@ -2,8 +2,8 @@
 
 namespace App\Services\Admin;
 
+use App\Services\SettingsService;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\File;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
@@ -12,14 +12,13 @@ class MalService
 {
     protected string $baseUrl = 'https://api.myanimelist.net/v2';
 
+    public function __construct(protected SettingsService $settingsService)
+    {
+    }
+
     public function getClientId(): ?string
     {
-        $settingsFile = storage_path('app/settings.json');
-        if (File::exists($settingsFile)) {
-            $settings = json_decode(File::get($settingsFile), true);
-            return $settings['mal_client_id'] ?? null;
-        }
-        return null;
+        return $this->settingsService->get('mal_client_id');
     }
 
     public function search(string $query)

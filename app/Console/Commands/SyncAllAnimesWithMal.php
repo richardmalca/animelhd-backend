@@ -25,42 +25,49 @@ class SyncAllAnimesWithMal extends Command
         $bar = $this->output->createProgressBar($total);
         $delay = (int) $this->option('delay') * 1000000; // Convertir a microsegundos
 
-        // Usamos cursor para no cargar todo en memoria si la lista es gigante
-        foreach (Anime::whereNotNull('mal_id')->cursor() as $anime) {
-            if (\Illuminate\Support\Facades\Cache::has('anime_sync_stop')) {
-                $this->warn("\nSincronización detenida por el usuario.");
-                \Illuminate\Support\Facades\Cache::forget('anime_sync_stop');
-                break;
-            }
-
-            try {
-                $progressData = [
-                    'current' => $bar->getProgress() + 1,
-                    'total' => $total,
-                    'last_anime' => $anime->name,
-                    'active' => true
-                ];
-
-                \Illuminate\Support\Facades\Cache::put('anime_sync_progress', $progressData, 3600);
-
-                $data = $malService->getDetails($anime->mal_id);
-                if ($data) {
-                    $animeService->updateFromMalData($anime, $data);
+        try {
+            // Usamos cursor para no cargar todo en memoria si la lista es gigante
+            foreach (Anime::whereNotNull('mal_id')->cursor() as $anime) {
+                if (\Illuminate\Support\Facades\Cache::has('anime_sync_stop')) {
+                    $this->warn("\nSincronización detenida por el usuario.");
+                    \Illuminate\Support\Facades\Cache::forget('anime_sync_stop');
+                    break;
                 }
-                
-                $bar->advance();
-                
-                if ($delay > 0) {
-                    usleep($delay);
+
+                try {
+                    $progressData = [
+                        'current' => $bar->getProgress() + 1,
+                        'total' => $total,
+                        'last_anime' => $anime->name,
+                        'active' => true,
+                        // Heartbeat: le permite al frontend detectar un job "zombie"
+                        // (worker caído/reiniciado a mitad de sync) y dejar de esperarlo.
+                        'updated_at' => now()->timestamp,
+                    ];
+
+                    \Illuminate\Support\Facades\Cache::put('anime_sync_progress', $progressData, 3600);
+
+                    $data = $malService->getDetails($anime->mal_id);
+                    if ($data) {
+                        $animeService->updateFromMalData($anime, $data);
+                    }
+
+                    $bar->advance();
+
+                    if ($delay > 0) {
+                        usleep($delay);
+                    }
+                } catch (\Exception $e) {
+                    $this->error("\nError sincronizando {$anime->name} (ID MAL: {$anime->mal_id}): " . $e->getMessage());
+                    continue;
                 }
-            } catch (\Exception $e) {
-                $this->error("\nError sincronizando {$anime->name} (ID MAL: {$anime->mal_id}): " . $e->getMessage());
-                continue;
             }
+        } finally {
+            // Se ejecuta también si el proceso muere por una excepción no controlada,
+            // para no dejar el progreso marcado como "activo" indefinidamente.
+            \Illuminate\Support\Facades\Cache::forget('anime_sync_progress');
         }
 
-        \Illuminate\Support\Facades\Cache::forget('anime_sync_progress');
-        // event(new \App\Events\AnimeSyncProgressUpdated(0, 0, '', false));
         $bar->finish();
         $this->newLine(2);
         $this->info('Sincronización masiva completada con éxito.');

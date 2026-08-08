@@ -6,6 +6,7 @@ import type { Anime, AnimeFilters, PaginatedData } from '@/types/anime';
 import { AnimeFiltersSection } from './components/anime-filters-section';
 import { AnimeIndexActions } from './components/anime-index-actions';
 import { AnimeTable } from './components/anime-table';
+import { SyncAllProgressModal } from './components/sync-all-progress-modal';
 import { useAnimeIndex } from './hooks/use-anime-index';
 
 export default function AnimeIndex({
@@ -15,7 +16,7 @@ export default function AnimeIndex({
     animes: PaginatedData<Anime>;
     filters: AnimeFilters;
 }) {
-    const { filters, modals, actions } = useAnimeIndex(initialFilters);
+    const { filters, modals, actions, syncAll } = useAnimeIndex(initialFilters);
 
     return (
         <div className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
@@ -27,8 +28,8 @@ export default function AnimeIndex({
             >
                 <div className="flex items-center gap-2">
                     <AnimeIndexActions
-                        isSyncingAll={actions.isSyncingAll}
-                        onSyncAll={actions.handleSyncAll}
+                        isSyncingAll={syncAll.isModalOpen || syncAll.isLaunching}
+                        onSyncAll={syncAll.openConfirm}
                     />
                 </div>
             </PageHeader>
@@ -66,6 +67,23 @@ export default function AnimeIndex({
                 title={modals.animeToDelete?.name}
                 type="anime"
                 processing={modals.isDeleting}
+            />
+
+            <ConfirmDialog
+                open={syncAll.isConfirmOpen}
+                onOpenChange={syncAll.setIsConfirmOpen}
+                onConfirm={syncAll.launchSync}
+                description="Se sincronizará el catálogo completo con MyAnimeList en segundo plano. Puede tardar varios minutos según la cantidad de animes."
+                confirmText="Sincronizar todo"
+                confirmVariant="default"
+                processing={syncAll.isLaunching}
+            />
+
+            <SyncAllProgressModal
+                open={syncAll.isModalOpen}
+                progress={syncAll.progress}
+                isStopping={syncAll.isStopping}
+                onStop={syncAll.stopSync}
             />
         </div>
     );
