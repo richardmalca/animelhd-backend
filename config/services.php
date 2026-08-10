@@ -49,4 +49,14 @@ return [
         )),
     ],
 
+    // Whitelists de Referer reutilizables por el middleware CheckAllowedReferer
+    // (->middleware('referer.whitelist:<clave>')). Cada clave es un grupo de
+    // rutas distinto.
+    'referer_whitelists' => [
+        'auth_api' => array_filter(array_map(
+            'trim',
+            explode(',', env('AUTH_API_ALLOWED_HOSTS', 'restore.kawaiianimes.app'))
+        )),
+    ],
+
 ];

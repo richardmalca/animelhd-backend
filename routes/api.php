@@ -16,7 +16,7 @@ Route::middleware([CheckAppKey::class])->group(function () {
         Route::post('/insert', [BotUploaderController::class, 'insert']);
     });
 
-    Route::middleware('throttle:5,1')->group(function () {
+    Route::middleware(['throttle:5,1', 'referer.whitelist:auth_api'])->group(function () {
         Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('/auth/validate-reset-token', [AuthController::class, 'validateResetToken']);
         Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
