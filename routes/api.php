@@ -16,9 +16,11 @@ Route::middleware([CheckAppKey::class])->group(function () {
         Route::post('/insert', [BotUploaderController::class, 'insert']);
     });
 
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/auth/validate-reset-token', [AuthController::class, 'validateResetToken']);
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::middleware('throttle:5,1')->group(function () {
+        Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('/auth/validate-reset-token', [AuthController::class, 'validateResetToken']);
+        Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    });
 
     Route::get('/home', [HomeController::class, 'index']);
     Route::get('/animes', [AnimeController::class, 'index']);
