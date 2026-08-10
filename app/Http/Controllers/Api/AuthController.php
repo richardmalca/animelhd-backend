@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Api\AuthService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rules\Password;
 
 use Illuminate\Support\Facades\Log;
 
@@ -77,7 +78,7 @@ class AuthController extends Controller
             $request->validate([
                 'token' => 'required|string',
                 'email' => 'required|email',
-                'password' => 'required|string|min:8|confirmed',
+                'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
             ]);
 
             $success = $this->authService->resetPassword($request->only('email', 'password', 'password_confirmation', 'token'));
