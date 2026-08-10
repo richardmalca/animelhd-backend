@@ -39,4 +39,14 @@ return [
         'key' => env('X_APP_KEY'),
     ],
 
+    'player_bridge' => [
+        // Dominios desde los que se permite cargar /v/{slug}/{token} (vía Referer
+        // del <iframe> embebido en el frontend). Cualquier otro origen, o un
+        // acceso directo sin Referer (link pegado, scraping, curl), se rechaza.
+        'allowed_hosts' => array_filter(array_map(
+            'trim',
+            explode(',', env('PLAYER_BRIDGE_ALLOWED_HOSTS', 'www.animelatinohd.com,animelatinohd.com'))
+        )),
+    ],
+
 ];

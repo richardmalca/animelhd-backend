@@ -56,6 +56,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('admin/users', UserController::class)->only(['index']);
 });
 
-Route::get('/v/{slug}/{token?}', [\App\Http\Controllers\PlayerController::class, 'show'])->name('player.bridge');
+Route::get('/v/{slug}/{token?}', [\App\Http\Controllers\PlayerController::class, 'show'])
+    ->middleware('throttle:60,1')
+    ->name('player.bridge');
 
 require __DIR__.'/settings.php';

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Player;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 class PlayerController extends Controller
 {
@@ -12,6 +13,16 @@ class PlayerController extends Controller
     {
         if ($token === null) {
             $token = $slug;
+        }
+
+        if (!$this->hasAllowedReferer($request)) {
+            Log::warning('player.bridge: acceso rechazado por Referer inválido', [
+                'referer' => $request->header('referer'),
+                'ip' => $request->ip(),
+                'slug' => $slug,
+            ]);
+
+            abort(403, 'Acceso no permitido desde este origen.');
         }
 
         try {
@@ -46,5 +57,32 @@ class PlayerController extends Controller
         } catch (\Exception $e) {
             abort(404);
         }
+    }
+
+    /**
+     * Solo permite cargar el bridge cuando viene embebido (iframe) desde uno de
+     * los dominios propios. Bloquea acceso directo (link pegado, curl, scraping)
+     * y que otros sitios lo empotren, ya que ninguno de esos casos manda un
+     * Referer con un host de la whitelist.
+     */
+    protected function hasAllowedReferer(Request $request): bool
+    {
+        $allowedHosts = config('services.player_bridge.allowed_hosts', []);
+
+        if (empty($allowedHosts)) {
+            // Sin whitelist configurada, no bloqueamos (evita dejar el sitio
+            // roto si falta la env var); quedará documentado en .env.example.
+            return true;
+        }
+
+        $referer = $request->header('referer');
+
+        if (!$referer) {
+            return false;
+        }
+
+        $refererHost = parse_url($referer, PHP_URL_HOST);
+
+        return $refererHost !== null && in_array($refererHost, $allowedHosts, true);
     }
 }
