@@ -94,7 +94,26 @@ export function useSyncAllProgress() {
                     setIsConfirmOpen(false);
                     startPolling();
                 },
-                onError: (errors: any) => {
+                onError: async (errors: any) => {
+                    // Un timeout/504 no significa necesariamente que el lanzamiento
+                    // falló: el servidor puede haber alcanzado a disparar el job
+                    // igual antes de que la respuesta se cortara (pasa con tráfico
+                    // alto o el pool de PHP-FPM saturado). Antes de mostrar error,
+                    // confirmamos consultando el progreso real.
+                    try {
+                        const response = await fetch('/admin/animes/sync-progress');
+                        const data: SyncAllProgressState = await response.json();
+
+                        if (data.active) {
+                            toast.success('Sincronización masiva iniciada (la respuesta tardó, pero sí arrancó)');
+                            setIsConfirmOpen(false);
+                            startPolling();
+                            return;
+                        }
+                    } catch {
+                        // sigue al mensaje de error genérico de abajo
+                    }
+
                     toast.error(errors.error || 'No se pudo iniciar la sincronización');
                 },
                 onFinish: () => setIsLaunching(false),
