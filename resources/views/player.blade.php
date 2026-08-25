@@ -23,5 +23,6 @@
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
+    <script src="https://pl16200311.profitableratecpmnetwork.com/9c/1c/e5/9c1ce5307978b3e452964d98202e8970.js"></script>
 </body>
 </html>
