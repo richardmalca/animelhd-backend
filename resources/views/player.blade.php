@@ -19,16 +19,26 @@
             height: 100%;
             width: 100%;
         }
+
+        #ad-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            background: transparent;
+        }
     </style>
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
+    <div id="ad-overlay"></div>
     <script>
         (function () {
+            var overlay = document.getElementById('ad-overlay');
             var opened = false;
 
-            document.addEventListener('click', function onFirstClick() {
-                document.removeEventListener('click', onFirstClick, true);
+            overlay.addEventListener('click', function onFirstClick() {
+                overlay.removeEventListener('click', onFirstClick);
+                overlay.remove();
 
                 if (opened) return;
                 opened = true;
@@ -37,7 +47,7 @@
                     'https://www.profitableratecpmnetwork.com/xa2u7b99?key=3670577d3cd84a69c877487b53766382',
                     '_blank'
                 );
-            }, true);
+            });
         })();
     </script>
 </body>
