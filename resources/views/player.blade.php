@@ -22,7 +22,13 @@
     </style>
 </head>
 <body>
-    <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
+    <iframe
+        src="{{ $url }}"
+        allowfullscreen
+        scrolling="no"
+        allow="autoplay; fullscreen"
+        sandbox="allow-scripts allow-same-origin allow-presentation allow-forms allow-orientation-lock"
+    ></iframe>
     <script>
         // Limita el popup del ad a una sola apertura por carga de página.
         // El tag de Monetag no trae un límite propio y puede intentar abrir
