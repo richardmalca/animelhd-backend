@@ -23,6 +23,21 @@
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
+    <script>
+        // Limita el popup del ad a una sola apertura por carga de página.
+        // El tag de Monetag no trae un límite propio y puede intentar abrir
+        // una ventana en cada click; esto neutraliza los intentos siguientes
+        // sin tocar los listeners de click, así el iframe sigue reaccionando.
+        (function () {
+            var used = false;
+            var originalOpen = window.open;
+            window.open = function () {
+                if (used) return null;
+                used = true;
+                return originalOpen.apply(window, arguments);
+            };
+        })();
+    </script>
     <script>(function(s){s.dataset.zone='11039557',s.src='https://llvpn.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 </body>
 </html>
