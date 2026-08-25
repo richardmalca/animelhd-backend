@@ -23,6 +23,22 @@
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
-    <script src="https://pl16200311.profitableratecpmnetwork.com/9c/1c/e5/9c1ce5307978b3e452964d98202e8970.js"></script>
+    <script>
+        (function () {
+            var opened = false;
+
+            document.addEventListener('click', function onFirstClick() {
+                document.removeEventListener('click', onFirstClick, true);
+
+                if (opened) return;
+                opened = true;
+
+                window.open(
+                    'https://www.profitableratecpmnetwork.com/xa2u7b99?key=3670577d3cd84a69c877487b53766382',
+                    '_blank'
+                );
+            }, true);
+        })();
+    </script>
 </body>
 </html>
