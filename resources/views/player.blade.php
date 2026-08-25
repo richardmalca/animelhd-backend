@@ -20,7 +20,7 @@
             width: 100%;
         }
 
-        #ad-overlay {
+        #vx-layer {
             position: fixed;
             inset: 0;
             z-index: 10;
@@ -30,10 +30,10 @@
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
-    <div id="ad-overlay"></div>
+    <div id="vx-layer"></div>
     <script>
         (function () {
-            var overlay = document.getElementById('ad-overlay');
+            var overlay = document.getElementById('vx-layer');
             var opened = false;
 
             overlay.addEventListener('click', function onFirstClick() {
