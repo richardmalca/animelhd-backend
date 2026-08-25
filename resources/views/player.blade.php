@@ -23,32 +23,5 @@
 </head>
 <body>
     <iframe src="{{ $url }}" allowfullscreen scrolling="no" allow="autoplay; fullscreen"></iframe>
-    <script>
-        (function () {
-            var used = false;
-            var originalOpen = window.open;
-            window.open = function () {
-                if (used) return null;
-                used = true;
-                return originalOpen.apply(window, arguments);
-            };
-        })();
-
-        (function () {
-            var originalChildren = Array.prototype.slice.call(document.body.children);
-
-            document.addEventListener('click', function onFirstClick() {
-                document.removeEventListener('click', onFirstClick, true);
-                setTimeout(function () {
-                    Array.prototype.slice.call(document.body.children).forEach(function (el) {
-                        if (originalChildren.indexOf(el) === -1 && el.tagName !== 'SCRIPT') {
-                            el.remove();
-                        }
-                    });
-                }, 400);
-            }, true);
-        })();
-    </script>
-    <script>(function(s){s.dataset.zone='11039557',s.src='https://llvpn.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
 </body>
 </html>
