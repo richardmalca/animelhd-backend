@@ -43,10 +43,8 @@
                 if (opened) return;
                 opened = true;
 
-                window.open(
-                    'https://www.profitableratecpmnetwork.com/xa2u7b99?key=3670577d3cd84a69c877487b53766382',
-                    '_blank'
-                );
+                var w = window.open('https://hai8g.com/4/11307950', '_blank');
+                if (w) window.focus();
             });
         })();
     </script>
