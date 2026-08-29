@@ -35,8 +35,6 @@
         (function () {
             var overlay = document.getElementById('vx-layer');
             var opened = false;
-            var key = 'vx_last_open';
-            var limitMs = 10 * 60 * 1000;
 
             overlay.addEventListener('click', function onFirstClick() {
                 overlay.removeEventListener('click', onFirstClick);
@@ -45,14 +43,7 @@
                 if (opened) return;
                 opened = true;
 
-                var now = Date.now();
-                try {
-                    var last = Number(localStorage.getItem(key) || 0);
-                    if (now - last < limitMs) return;
-                    localStorage.setItem(key, String(now));
-                } catch (e) {}
-
-                var w = window.open('https://doubtfulimpatient.com/xa2u7b99?key=3670577d3cd84a69c877487b53766382', '_blank');
+                var w = window.open('https://hai8g.com/4/11307950', '_blank');
                 if (w) window.focus();
             });
         })();
