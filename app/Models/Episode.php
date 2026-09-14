@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Redis;
 
 class Episode extends Model
 {
@@ -23,5 +24,12 @@ class Episode extends Model
     public function players(): HasMany
     {
         return $this->hasMany(Player::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (Episode $episode): void {
+            Redis::connection('shared')->set('episodes:last_id', $episode->id);
+        });
     }
 }

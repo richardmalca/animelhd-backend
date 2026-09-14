@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Redis;
 
 class Player extends Model
 {
@@ -23,5 +24,16 @@ class Player extends Model
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (): void {
+            Redis::connection('shared')->set('players:last_updated', now()->toDateTimeString());
+        });
+
+        static::deleted(function (): void {
+            Redis::connection('shared')->set('players:last_updated', now()->toDateTimeString());
+        });
     }
 }
