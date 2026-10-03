@@ -141,7 +141,7 @@ class AnimeService
 
     public function clearCache(): void
     {
-        Cache::tags(['home', 'catalog'])->flush();
+        Cache::tags(['home', 'catalog', 'anime-detail'])->flush();
     }
 
     private function resolveGenreSlugsCsv(array $externalGenres, string $matchField = 'title'): ?string

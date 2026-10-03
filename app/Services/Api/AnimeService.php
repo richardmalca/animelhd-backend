@@ -15,9 +15,14 @@ use Illuminate\Support\Facades\Redis;
 
 class AnimeService
 {
+    public function __construct(
+        private readonly AnimeRelations $animeRelations,
+        private readonly DubbedAnimeCatalog $dubbedAnimeCatalog,
+    ) {}
+
    public function getLatestEpisodes(int $limit = 12): Collection
     {
-        $data = Cache::tags(['home'])->remember("latest_episodes_{$limit}", 300, function () use ($limit) {
+        $data = Cache::tags(['home'])->remember("latest_episodes_banner_v2_{$limit}", 300, function () use ($limit) {
             $latestIds = Episode::has('players')
                 ->orderBy('id', 'desc')
                 ->limit(50)
@@ -27,7 +32,7 @@ class AnimeService
                 ->pluck('id');
 
             return Episode::whereIn('id', $latestIds)
-                ->with(['anime:id,name,poster,slug', 'players:id,episode_id,languaje'])
+                ->with(['anime:id,name,poster,banner,slug', 'players:id,episode_id,languaje'])
                 ->orderBy('id', 'desc')
                 ->get(['id', 'anime_id', 'number', 'created_at'])
                 ->map(function ($episode) {
@@ -35,7 +40,9 @@ class AnimeService
                         'id' => $episode->id,
                         'number' => $episode->number,
                         'anime_title' => $episode->anime->name,
-                        'anime_image' => $episode->anime->poster,
+                        'anime_image' => trim((string) $episode->anime->banner) !== ''
+                            ? $episode->anime->banner
+                            : $episode->anime->poster,
                         'anime_slug' => $episode->anime->slug,
                         'languages' => $episode->players->pluck('languaje')->unique()->map(function ($lang) {
                             return match ($lang) {
@@ -148,18 +155,9 @@ class AnimeService
 
     public function getAnimeBySlug(string $slug): ?array
     {
-        return Cache::tags(['anime-detail', "anime-{$slug}"])->remember("anime_detail_{$slug}", 3600, function () use ($slug) {
+        return Cache::tags(['anime-detail', "anime-{$slug}"])->remember("anime_detail_relations_v2_{$slug}", 3600, function () use ($slug) {
             $anime = Anime::where('slug', $slug)->first();
             if (!$anime) return null;
-
-            $allRelationIds = collect(explode(',', $anime->prequel . ',' . $anime->sequel . ',' . $anime->related))
-                ->filter()
-                ->unique()
-                ->values();
-
-            $relatedAnimes = $allRelationIds->isEmpty() 
-                ? collect() 
-                : Anime::whereIn('id', $allRelationIds)->get(['id', 'name', 'poster', 'slug', 'type', 'vote_average']);
 
             $episodes = $anime->episodes()
                 ->has('players')
@@ -169,11 +167,7 @@ class AnimeService
             return [
                 'anime' => $anime->toArray(),
                 'episodes' => $episodes->toArray(),
-                'relations' => [
-                    'prequel' => $relatedAnimes->whereIn('id', explode(',', $anime->prequel))->values()->toArray(),
-                    'sequel' => $relatedAnimes->whereIn('id', explode(',', $anime->sequel))->values()->toArray(),
-                    'related' => $relatedAnimes->whereIn('id', explode(',', $anime->related))->values()->toArray(),
-                ]
+                'relations' => $this->animeRelations->resolve($anime),
             ];
         });
     }
@@ -266,87 +260,11 @@ class AnimeService
 
     public function getLatinosPaginated(int $perPage = 28): LengthAwarePaginator
     {
-        $page = request('page', 1);
-        $cacheKey = "animes_latinos_{$page}_{$perPage}";
-
-        $data = Cache::tags(['catalog'])->remember($cacheKey, 300, function () use ($perPage) {
-            return Anime::whereHas('episodes.players', function ($query) {
-                    $query->where('languaje', 1);
-                })
-                ->with(['episodes' => function ($query) {
-                    $query->has('players')->orderBy('number', 'desc')->select('id', 'anime_id', 'number', 'created_at');
-                }])
-                ->orderBy('id', 'desc')
-                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
-                ->toArray();
-        });
-
-        $mappedData = collect($data['data'])->map(function ($anime) {
-            $episodes = collect($anime['episodes'] ?? []);
-            $latest = $episodes->first();
-            
-            return [
-                'id' => $anime['id'],
-                'name' => $anime['name'],
-                'slug' => $anime['slug'],
-                'poster' => $anime['poster'],
-                'vote_average' => $anime['vote_average'],
-                'type' => $anime['type'],
-                'aired' => $anime['aired'],
-                'last_episode_number' => $latest ? $latest['number'] : 0,
-                'last_episode_at' => $latest ? $latest['created_at'] : null,
-            ];
-        });
-
-        return new \Illuminate\Pagination\LengthAwarePaginator(
-            $mappedData->toArray(),
-            $data['total'],
-            $data['per_page'],
-            $data['current_page'],
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
+        return $this->dubbedAnimeCatalog->paginate(1, $perPage);
     }
 
     public function getCastellanosPaginated(int $perPage = 28): LengthAwarePaginator
     {
-        $page = request('page', 1);
-        $cacheKey = "animes_castellanos_{$page}_{$perPage}";
-
-        $data = Cache::tags(['catalog'])->remember($cacheKey, 300, function () use ($perPage) {
-            return Anime::whereHas('episodes.players', function ($query) {
-                    $query->where('languaje', 2);
-                })
-                ->with(['episodes' => function ($query) {
-                    $query->has('players')->orderBy('number', 'desc')->select('id', 'anime_id', 'number', 'created_at');
-                }])
-                ->orderBy('id', 'desc')
-                ->paginate($perPage, ['id', 'name', 'slug', 'poster', 'vote_average', 'type', 'aired'])
-                ->toArray();
-        });
-
-        $mappedData = collect($data['data'])->map(function ($anime) {
-            $episodes = collect($anime['episodes'] ?? []);
-            $latest = $episodes->first();
-            
-            return [
-                'id' => $anime['id'],
-                'name' => $anime['name'],
-                'slug' => $anime['slug'],
-                'poster' => $anime['poster'],
-                'vote_average' => $anime['vote_average'],
-                'type' => $anime['type'],
-                'aired' => $anime['aired'],
-                'last_episode_number' => $latest ? $latest['number'] : 0,
-                'last_episode_at' => $latest ? $latest['created_at'] : null,
-            ];
-        });
-
-        return new \Illuminate\Pagination\LengthAwarePaginator(
-            $mappedData->toArray(),
-            $data['total'],
-            $data['per_page'],
-            $data['current_page'],
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
+        return $this->dubbedAnimeCatalog->paginate(2, $perPage);
     }
 }
