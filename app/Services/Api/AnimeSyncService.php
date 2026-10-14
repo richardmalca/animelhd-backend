@@ -15,7 +15,7 @@ class AnimeSyncService
     // para invalidar automáticamente el caché sin esperar a que cambie un anime.
     private const SCHEMA_VERSION = 4;
 
-    private const FIELDS = [
+    public const FIELDS = [
         'id',
         'name',
         'name_alternative',
@@ -44,7 +44,7 @@ class AnimeSyncService
 
     public function getVersion(): array
     {
-        return Cache::remember('sync:animes:version:v' . self::SCHEMA_VERSION, self::VERSION_TTL, function () {
+        return Cache::remember('sync:animes:version:v'.self::SCHEMA_VERSION, self::VERSION_TTL, function () {
             $maxUpdatedAt = Anime::max('updated_at');
             $count = Anime::count();
 
@@ -58,7 +58,7 @@ class AnimeSyncService
     public function getAnimeList(): array
     {
         $version = $this->getVersion()['version'];
-        $cacheKey = 'sync:animes:payload:v' . self::SCHEMA_VERSION . ":{$version}";
+        $cacheKey = 'sync:animes:payload:v'.self::SCHEMA_VERSION.":{$version}";
 
         return Cache::remember($cacheKey, self::PAYLOAD_TTL, function () {
             return Anime::query()

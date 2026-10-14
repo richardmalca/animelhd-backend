@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\AnimeController;
 use App\Http\Controllers\Api\AnimeSyncController;
-use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BotUploaderController;
+use App\Http\Controllers\Api\CalendarController;
+use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\SyncController;
 use App\Http\Middleware\CheckAppKey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,9 @@ Route::middleware([CheckAppKey::class])->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index']);
     Route::get('/latinos', [AnimeController::class, 'latinos']);
     Route::get('/castellanos', [AnimeController::class, 'castellanos']);
+
+    // Sincronización incremental: animes, géneros, servidores, episodios y reproductores en una sola URL.
+    Route::middleware('throttle:120,1')->get('/sync', [SyncController::class, 'index']);
 
     Route::middleware('throttle:60,1')->prefix('sync')->group(function () {
         Route::get('/animes/version', [AnimeSyncController::class, 'version']);
