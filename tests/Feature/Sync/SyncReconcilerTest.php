@@ -20,8 +20,15 @@ beforeEach(function () {
     Carbon::setTestNow(Carbon::parse('2026-10-16 12:00:00'));
 
     foreach (['animes', 'genres', 'servers', 'episodes', 'players'] as $name) {
-        Schema::create($name, function (Blueprint $table) {
+        Schema::create($name, function (Blueprint $table) use ($name) {
             $table->id();
+            if ($name === 'episodes') {
+                $table->unsignedBigInteger('anime_id')->default(0);
+            }
+            if ($name === 'players') {
+                $table->unsignedBigInteger('episode_id')->default(0);
+                $table->unsignedBigInteger('server_id')->default(0);
+            }
             $table->timestamps();
         });
     }
@@ -34,14 +41,14 @@ afterEach(function () {
     Carbon::setTestNow();
 });
 
-function externalInsert(string $table, int $count = 1, ?string $updatedAt = null): array
+function externalInsert(string $table, int $count = 1, ?string $updatedAt = null, array $extra = []): array
 {
     $ids = [];
     for ($i = 0; $i < $count; $i++) {
         $ids[] = DB::table($table)->insertGetId([
             'created_at' => now()->toDateTimeString(),
             'updated_at' => $updatedAt ?? now()->toDateTimeString(),
-        ]);
+        ] + $extra);
     }
 
     return $ids;
@@ -124,11 +131,12 @@ it('la revisión rápida no cruza las tablas completas', function () {
 
 it('solo revisa una vez por intervalo al pedir /api/sync', function () {
     $reconciler = app(SyncReconciler::class);
-    externalInsert('episodes', 1);
+    [$anime] = externalInsert('animes');
+    externalInsert('episodes', 1, extra: ['anime_id' => $anime]);
     $reconciler->reconcileIfDue();
     expect(recordedIds('episode'))->toHaveCount(1);
 
-    externalInsert('episodes', 1);
+    externalInsert('episodes', 1, extra: ['anime_id' => $anime]);
     $reconciler->reconcileIfDue();
     expect(recordedIds('episode'))->toHaveCount(1);
 
@@ -206,10 +214,114 @@ it('la revisión completa se programa después de responder y una sola vez', fun
     expect(Cache::get('sync:reconcile:full_at'))->not->toBeNull();
 });
 
+function catalogTree(): array
+{
+    $anime = DB::table('animes')->insertGetId(['created_at' => now(), 'updated_at' => now()]);
+    $server = DB::table('servers')->insertGetId(['created_at' => now(), 'updated_at' => now()]);
+    $episodes = [];
+    $players = [];
+    foreach ([1, 2] as $_) {
+        $episode = DB::table('episodes')->insertGetId(['anime_id' => $anime, 'created_at' => now(), 'updated_at' => now()]);
+        $episodes[] = $episode;
+        $players[] = DB::table('players')->insertGetId(['episode_id' => $episode, 'server_id' => $server, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    return compact('anime', 'server', 'episodes', 'players');
+}
+
+it('si se borra un anime sin borrar sus episodios y reproductores, las apps los reciben como borrados', function () {
+    $tree = catalogTree();
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcile();
+
+    DB::table('animes')->where('id', $tree['anime'])->delete();
+    $summary = $reconciler->reconcile(full: true);
+
+    expect($summary['anime']['deleted'])->toBe(1);
+    expect($summary['episode']['deleted'])->toBe(2);
+    expect($summary['player']['deleted'])->toBe(2);
+    expect(recordedIds('anime'))->toBe([]);
+    expect(recordedIds('episode'))->toBe([]);
+    expect(recordedIds('player'))->toBe([]);
+});
+
+it('si la base borra en cascada, cada tabla se anota como borrada por su cuenta', function () {
+    $tree = catalogTree();
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcile();
+
+    DB::table('players')->whereIn('id', $tree['players'])->delete();
+    DB::table('episodes')->whereIn('id', $tree['episodes'])->delete();
+    DB::table('animes')->where('id', $tree['anime'])->delete();
+    $reconciler->reconcile(full: true);
+
+    expect(recordedIds('anime'))->toBe([]);
+    expect(recordedIds('episode'))->toBe([]);
+    expect(recordedIds('player'))->toBe([]);
+    expect(SyncChange::where('entity', 'player')->where('deleted', true)->count())->toBe(2);
+});
+
+it('borrar un episodio deja sin visibilidad a sus reproductores y el anime sigue', function () {
+    $tree = catalogTree();
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcile();
+
+    DB::table('episodes')->where('id', $tree['episodes'][0])->delete();
+    $reconciler->reconcile(full: true);
+
+    expect(recordedIds('anime'))->toBe([$tree['anime']]);
+    expect(recordedIds('episode'))->toBe([$tree['episodes'][1]]);
+    expect(recordedIds('player'))->toBe([$tree['players'][1]]);
+});
+
+it('un reproductor cuyo servidor desapareció deja de verse', function () {
+    $tree = catalogTree();
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcile();
+
+    DB::table('servers')->where('id', $tree['server'])->delete();
+    $reconciler->reconcile(full: true);
+
+    expect(recordedIds('server'))->toBe([]);
+    expect(recordedIds('player'))->toBe([]);
+});
+
+it('lo huérfano que recupera a su padre vuelve a verse', function () {
+    $tree = catalogTree();
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcile();
+    $row = (array) DB::table('animes')->where('id', $tree['anime'])->first();
+    DB::table('animes')->where('id', $tree['anime'])->delete();
+    $reconciler->reconcile(full: true);
+    expect(recordedIds('episode'))->toBe([]);
+
+    DB::table('animes')->insert($row);
+    $reconciler->reconcile(full: true);
+
+    expect(recordedIds('anime'))->toBe([$tree['anime']]);
+    expect(recordedIds('episode'))->toBe($tree['episodes']);
+    expect(recordedIds('player'))->toBe($tree['players']);
+});
+
+it('los contadores de vistas, que no tocan updated_at, no generan cambios', function () {
+    $tree = catalogTree();
+    Schema::table('animes', fn (Blueprint $table) => $table->integer('views')->default(0));
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcile();
+    $cursor = (int) SyncChange::max('id');
+
+    Carbon::setTestNow(now()->addMinutes(5));
+    DB::table('animes')->where('id', $tree['anime'])->increment('views', 10);
+    $reconciler->reconcile();
+
+    expect((int) SyncChange::max('id'))->toBe($cursor);
+});
+
 it('el comando sync:reconcile anota y muestra el resumen', function () {
-    externalInsert('episodes', 2);
+    catalogTree();
 
     $this->artisan('sync:reconcile', ['--full' => true])->assertSuccessful();
 
     expect(recordedIds('episode'))->toHaveCount(2);
+    expect(recordedIds('player'))->toHaveCount(2);
 });

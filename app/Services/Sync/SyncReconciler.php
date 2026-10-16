@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\DB;
  *    así que cada fila se anota una vez y las apps solo bajan lo que de verdad cambió;
  *  - cada pasada tiene un tope de filas: si hay un atraso grande (por ejemplo, tras días sin revisar), se
  *    reparte entre varias pasadas en vez de bloquear una petición;
- *  - huecos y borrados cruzan las tablas completas, así que van aparte, cada tanto y después de responder.
+ *  - huecos, borrados y huérfanos (episodios o reproductores cuyo anime ya no existe) cruzan las tablas
+ *    completas, así que van aparte, cada tanto y después de responder.
  */
 class SyncReconciler
 {
@@ -120,7 +121,8 @@ class SyncReconciler
         $summary = [];
         foreach (SyncChangeRecorder::TABLES as $entity => $table) {
             $summary[$entity] = [
-                'gaps' => $this->recordGaps($entity, $table),
+                // Huecos y filas que recuperaron a su padre vuelven a verse; borradas y huérfanas dejan de verse.
+                'gaps' => $this->recordGaps($entity, $table) + $this->recordRevived($entity, $table),
                 'deleted' => $this->recordDeleted($entity, $table),
             ];
         }
@@ -170,6 +172,7 @@ class SyncReconciler
             ->join('sync_changes as s', function ($join) use ($entity) {
                 $join->on('s.entity_id', '=', 't.id')->where('s.entity', '=', $entity);
             })
+            ->where('s.deleted', false)
             ->where('t.updated_at', '>=', $since)
             ->whereColumn('t.updated_at', '>', 's.created_at')
             ->orderBy('t.id')
@@ -196,19 +199,79 @@ class SyncReconciler
         return count($ids);
     }
 
-    /** Filas anotadas como existentes que ya no están en la tabla: se anotan como borradas. */
+    /**
+     * Filas anotadas como vivas que ya no deben verse: las que desaparecieron de la tabla y las huérfanas (su anime,
+     * episodio o servidor ya no existe, aunque nadie las haya borrado). Las apps las reciben como borradas.
+     */
     private function recordDeleted(string $entity, string $table): int
     {
-        $ids = DB::table('sync_changes as s')
+        $missing = DB::table('sync_changes as s')
             ->leftJoin("{$table} as t", 't.id', '=', 's.entity_id')
             ->where('s.entity', $entity)
             ->where('s.deleted', false)
             ->whereNull('t.id')
             ->pluck('s.entity_id')
             ->all();
+
+        $orphans = $this->orphanIds($entity);
+        $liveOrphans = [];
+        foreach (array_chunk($orphans, 1000) as $chunk) {
+            array_push($liveOrphans, ...DB::table('sync_changes')
+                ->where('entity', $entity)
+                ->where('deleted', false)
+                ->whereIn('entity_id', $chunk)
+                ->pluck('entity_id')
+                ->all());
+        }
+
+        $ids = array_values(array_unique([...$missing, ...$liveOrphans]));
         $this->recorder->recordMany($entity, $ids, deleted: true);
 
         return count($ids);
+    }
+
+    /** Filas anotadas como borradas que existen y ya tienen a sus padres otra vez: vuelven a verse. */
+    private function recordRevived(string $entity, string $table): int
+    {
+        $orphans = array_flip($this->orphanIds($entity));
+        $ids = DB::table('sync_changes as s')
+            ->join("{$table} as t", 't.id', '=', 's.entity_id')
+            ->where('s.entity', $entity)
+            ->where('s.deleted', true)
+            ->pluck('s.entity_id')
+            ->filter(fn ($id) => ! isset($orphans[$id]))
+            ->values()
+            ->all();
+        $this->recorder->recordMany($entity, $ids);
+
+        return count($ids);
+    }
+
+    /**
+     * Filas que existen pero cuyo padre no: episodios sin anime y reproductores sin episodio (o sin el anime de ese
+     * episodio) o sin servidor. Pasa cuando se borra un anime sin borrar lo que cuelga de él.
+     *
+     * @return array<int, int>
+     */
+    private function orphanIds(string $entity): array
+    {
+        return match ($entity) {
+            SyncChangeRecorder::EPISODE => DB::table('episodes as t')
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('animes as a')->whereColumn('a.id', 't.anime_id'))
+                ->pluck('t.id')
+                ->all(),
+            SyncChangeRecorder::PLAYER => DB::table('players as t')
+                ->where(function ($where) {
+                    $where->whereNotExists(function ($q) {
+                        $q->selectRaw('1')->from('episodes as e')
+                            ->join('animes as a', 'a.id', '=', 'e.anime_id')
+                            ->whereColumn('e.id', 't.episode_id');
+                    })->orWhereNotExists(fn ($q) => $q->selectRaw('1')->from('servers as v')->whereColumn('v.id', 't.server_id'));
+                })
+                ->pluck('t.id')
+                ->all(),
+            default => [],
+        };
     }
 
     /** Desde cuándo buscar modificados: la última pasada o, la primera vez, la última reconstrucción. */
