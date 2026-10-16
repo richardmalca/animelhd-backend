@@ -17,6 +17,16 @@ return [
 
     'settle_seconds' => (int) env('SYNC_SETTLE_SECONDS', 3),
 
+    /*
+    | reconcile_interval: cada cuántos segundos, como mucho, /api/sync revisa si otras apps escribieron en la base
+    | de datos sin pasar por esta (0 lo desactiva). reconcile_full_interval: cada cuántos segundos se revisan
+    | además huecos y borrados, que cruzan las tablas completas.
+    */
+
+    'reconcile_interval' => (int) env('SYNC_RECONCILE_INTERVAL', 60),
+
+    'reconcile_full_interval' => (int) env('SYNC_RECONCILE_FULL_INTERVAL', 3600),
+
     'default_limit' => 5000,
 
     'max_limit' => 10000,

@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Sync\SyncReconciler;
 use App\Services\Sync\SyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SyncController extends Controller
 {
-    public function __construct(private readonly SyncService $service) {}
+    public function __construct(
+        private readonly SyncService $service,
+        private readonly SyncReconciler $reconciler,
+    ) {}
 
     /**
      * Cambios (animes, géneros, servidores, episodios y reproductores) desde un cursor.
@@ -23,6 +27,10 @@ class SyncController extends Controller
             'cursor' => ['sometimes', 'integer', 'min:0'],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:'.config('sync.max_limit')],
         ]);
+
+        // Anota lo que otras apps escribieron en la base de datos sin pasar por los observers (como mucho una vez
+        // por minuto; nunca impide responder).
+        $this->reconciler->reconcileIfDue();
 
         $page = $this->service->page(
             cursor: (int) ($validated['cursor'] ?? 0),
