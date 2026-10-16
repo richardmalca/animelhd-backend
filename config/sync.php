@@ -27,6 +27,10 @@ return [
 
     'reconcile_full_interval' => (int) env('SYNC_RECONCILE_FULL_INTERVAL', 3600),
 
+    /* reconcile_batch: tope de filas que anota cada pasada rápida por entidad; un atraso grande se reparte. */
+
+    'reconcile_batch' => (int) env('SYNC_RECONCILE_BATCH', 2000),
+
     'default_limit' => 5000,
 
     'max_limit' => 10000,

@@ -160,6 +160,52 @@ it('si la revisión falla, /api/sync sigue respondiendo', function () {
     $this->getJson('/api/sync?cursor=0&limit=5000', ['X-App-Key' => RECONCILE_KEY])->assertOk();
 });
 
+it('un atraso grande se reparte en varias pasadas', function () {
+    config(['sync.reconcile_batch' => 3]);
+    $ids = externalInsert('episodes', 7);
+    $reconciler = app(SyncReconciler::class);
+
+    $reconciler->reconcileQuick();
+    expect(recordedIds('episode'))->toBe(array_slice($ids, 0, 3));
+
+    $reconciler->reconcileQuick();
+    $reconciler->reconcileQuick();
+    expect(recordedIds('episode'))->toBe($ids);
+});
+
+it('lo modificado dentro de un atraso no se pierde', function () {
+    config(['sync.reconcile_batch' => 2]);
+    $ids = externalInsert('players', 5);
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcileQuick();
+    $reconciler->reconcileQuick();
+    $reconciler->reconcileQuick();
+
+    Carbon::setTestNow(now()->addMinutes(10));
+    DB::table('players')->update(['updated_at' => now()->toDateTimeString()]);
+    $reconciler->reconcileQuick();
+    $reconciler->reconcileQuick();
+    $summary = $reconciler->reconcileQuick();
+
+    expect($summary['player']['updated'])->toBe(1);
+    $stale = DB::table('players as t')->join('sync_changes as s', fn ($j) => $j->on('s.entity_id', '=', 't.id')->where('s.entity', 'player'))
+        ->whereColumn('t.updated_at', '>', 's.created_at')->count();
+    expect($stale)->toBe(0);
+});
+
+it('la revisión completa se programa después de responder y una sola vez', function () {
+    config(['sync.reconcile_full_interval' => 3600]);
+    DB::table('servers')->insert(['id' => 5, 'created_at' => now(), 'updated_at' => now()]);
+    $reconciler = app(SyncReconciler::class);
+    $reconciler->reconcileQuick();
+    DB::table('servers')->insert(['id' => 3, 'created_at' => now(), 'updated_at' => now()]);
+
+    $this->getJson('/api/sync?cursor=0', ['X-App-Key' => RECONCILE_KEY])->assertOk();
+
+    expect(recordedIds('server'))->toContain(3);
+    expect(Cache::get('sync:reconcile:full_at'))->not->toBeNull();
+});
+
 it('el comando sync:reconcile anota y muestra el resumen', function () {
     externalInsert('episodes', 2);
 

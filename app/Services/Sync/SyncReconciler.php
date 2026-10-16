@@ -12,11 +12,15 @@ use Illuminate\Support\Facades\DB;
  * (la API, el admin, un script) queda en las tablas pero no en el registro, y `/api/sync` no lo ve. Esta clase
  * compara las tablas con el registro y anota lo que falta, sin tocar a las demás aplicaciones.
  *
- * Es barata para poder correr a menudo:
- *  - lo nuevo se busca solo por encima del id más alto ya registrado (índice de la llave primaria);
- *  - lo modificado se busca solo desde la última pasada (índice de `updated_at`) y solo cuenta si cambió
- *    después de que se anotó, para no volver a mandar lo que las apps ya tienen;
- *  - lo borrado y los huecos piden cruzar las tablas completas, así que van aparte, cada tanto.
+ * Está pensada para no cargar la API:
+ *  - la pasada rápida corre como mucho una vez por intervalo (un candado evita que dos peticiones la hagan a
+ *    la vez); el resto de las peticiones solo leen una marca en la caché;
+ *  - lo nuevo se busca solo por encima del id más alto ya registrado (índice de la llave primaria) y lo
+ *    modificado solo desde la última pasada (índice de `updated_at`) y solo si cambió después de anotarse,
+ *    así que cada fila se anota una vez y las apps solo bajan lo que de verdad cambió;
+ *  - cada pasada tiene un tope de filas: si hay un atraso grande (por ejemplo, tras días sin revisar), se
+ *    reparte entre varias pasadas en vez de bloquear una petición;
+ *  - huecos y borrados cruzan las tablas completas, así que van aparte, cada tanto y después de responder.
  */
 class SyncReconciler
 {
@@ -32,74 +36,135 @@ class SyncReconciler
     public function __construct(private readonly SyncChangeRecorder $recorder) {}
 
     /**
-     * Se llama al servir `/api/sync`: pone al día el registro como mucho una vez por intervalo. Un candado evita
-     * que dos peticiones lo hagan a la vez. Nunca rompe la sincronización: si algo falla, se reporta y sigue.
+     * Se llama al servir `/api/sync`. La pasada rápida (nuevos y modificados) corre antes de responder, para que
+     * la app reciba enseguida lo último. La revisión de huecos y borrados corre después de enviar la respuesta.
+     * Nunca rompe la sincronización: si algo falla, se reporta y sigue.
      */
     public function reconcileIfDue(): void
     {
         $interval = (int) config('sync.reconcile_interval');
-        if ($interval <= 0 || ! $this->isDue(self::QUICK_AT, $interval)) {
+        if ($interval <= 0) {
             return;
         }
 
         try {
-            Cache::lock('sync:reconcile', 60)->get(function () use ($interval) {
-                if (! $this->isDue(self::QUICK_AT, $interval)) {
-                    return;
-                }
+            if ($this->isDue(self::QUICK_AT, $interval)) {
+                Cache::lock('sync:reconcile', 60)->get(function () use ($interval) {
+                    if ($this->isDue(self::QUICK_AT, $interval)) {
+                        $this->reconcileQuick();
+                    }
+                });
+            }
 
-                $full = $this->isDue(self::FULL_AT, (int) config('sync.reconcile_full_interval'));
-                $this->reconcile($full);
-            });
+            $this->scheduleFullAfterResponse();
         } catch (\Throwable $e) {
             report($e);
         }
     }
 
     /**
+     * Pasada completa a pedido (comando manual): rápida y, si se pide, también huecos y borrados.
+     *
      * @return array<string, array{new: int, updated: int, gaps: int, deleted: int}>
      */
     public function reconcile(bool $full = false): array
     {
-        $startedAt = now();
-        $since = $this->since();
-        $summary = [];
+        $summary = $this->reconcileQuick();
 
-        foreach (SyncChangeRecorder::TABLES as $entity => $table) {
-            $summary[$entity] = [
-                'new' => $this->recordNew($entity, $table),
-                'updated' => $this->recordUpdated($entity, $table, $since),
-                'gaps' => 0,
-                'deleted' => 0,
-            ];
-
-            if ($full) {
-                $summary[$entity]['gaps'] = $this->recordGaps($entity, $table);
-                $summary[$entity]['deleted'] = $this->recordDeleted($entity, $table);
-            }
-        }
-
-        Cache::forever(self::SINCE, $startedAt->subSeconds(self::MARGIN)->toDateTimeString());
-        Cache::forever(self::QUICK_AT, $startedAt->getTimestamp());
         if ($full) {
-            Cache::forever(self::FULL_AT, $startedAt->getTimestamp());
+            foreach ($this->reconcileFull() as $entity => $counts) {
+                $summary[$entity] = [...$summary[$entity], ...$counts];
+            }
         }
 
         return $summary;
     }
 
+    /**
+     * Lo nuevo y lo modificado. Barata: consultas por índice y con tope de filas.
+     *
+     * @return array<string, array{new: int, updated: int, gaps: int, deleted: int}>
+     */
+    public function reconcileQuick(): array
+    {
+        $startedAt = now();
+        $since = $this->since();
+        $batch = max(1, (int) config('sync.reconcile_batch'));
+        $summary = [];
+        $backlog = false;
+
+        foreach (SyncChangeRecorder::TABLES as $entity => $table) {
+            $new = $this->recordNew($entity, $table, $batch);
+            $updated = $this->recordUpdated($entity, $table, $since, $batch);
+            $summary[$entity] = ['new' => $new, 'updated' => $updated, 'gaps' => 0, 'deleted' => 0];
+            $backlog = $backlog || $new >= $batch || $updated >= $batch;
+        }
+
+        // Con atraso (alguna entidad llegó al tope) no se avanza la fecha de búsqueda: lo que falte se retoma
+        // en la siguiente pasada.
+        if (! $backlog) {
+            Cache::forever(self::SINCE, $startedAt->subSeconds(self::MARGIN)->toDateTimeString());
+        }
+        Cache::forever(self::QUICK_AT, $startedAt->getTimestamp());
+
+        return $summary;
+    }
+
+    /**
+     * Huecos y borrados: cruza las tablas completas. Más cara, por eso se usa poco.
+     *
+     * @return array<string, array{gaps: int, deleted: int}>
+     */
+    public function reconcileFull(): array
+    {
+        $summary = [];
+        foreach (SyncChangeRecorder::TABLES as $entity => $table) {
+            $summary[$entity] = [
+                'gaps' => $this->recordGaps($entity, $table),
+                'deleted' => $this->recordDeleted($entity, $table),
+            ];
+        }
+        Cache::forever(self::FULL_AT, now()->getTimestamp());
+
+        return $summary;
+    }
+
+    /** Programa la revisión completa para después de enviar la respuesta, una vez por intervalo. */
+    private function scheduleFullAfterResponse(): void
+    {
+        $interval = (int) config('sync.reconcile_full_interval');
+        if ($interval <= 0 || ! $this->isDue(self::FULL_AT, $interval)) {
+            return;
+        }
+
+        // `add` solo deja pasar a una petición: las demás ven que ya está programada.
+        if (! Cache::add('sync:reconcile:full_scheduled', 1, 600)) {
+            return;
+        }
+
+        dispatch(function () {
+            try {
+                Cache::lock('sync:reconcile:full', 600)->get(fn () => $this->reconcileFull());
+            } catch (\Throwable $e) {
+                report($e);
+            } finally {
+                Cache::forget('sync:reconcile:full_scheduled');
+            }
+        })->afterResponse();
+    }
+
     /** Filas con un id más alto que el último registrado: lo que se creó fuera de esta app. */
-    private function recordNew(string $entity, string $table): int
+    private function recordNew(string $entity, string $table, int $limit): int
     {
         $last = (int) DB::table('sync_changes')->where('entity', $entity)->max('entity_id');
-        $ids = DB::table($table)->where('id', '>', $last)->orderBy('id')->pluck('id')->all();
+        $ids = DB::table($table)->where('id', '>', $last)->orderBy('id')->limit($limit)->pluck('id')->all();
         $this->recorder->recordMany($entity, $ids);
 
         return count($ids);
     }
 
     /** Filas cambiadas desde la última pasada y después de la fecha en que se anotaron. */
-    private function recordUpdated(string $entity, string $table, string $since): int
+    private function recordUpdated(string $entity, string $table, string $since, int $limit): int
     {
         $ids = DB::table("{$table} as t")
             ->join('sync_changes as s', function ($join) use ($entity) {
@@ -107,6 +172,8 @@ class SyncReconciler
             })
             ->where('t.updated_at', '>=', $since)
             ->whereColumn('t.updated_at', '>', 's.created_at')
+            ->orderBy('t.id')
+            ->limit($limit)
             ->pluck('t.id')
             ->all();
         $this->recorder->recordMany($entity, $ids);
