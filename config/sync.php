@@ -31,6 +31,19 @@ return [
 
     'reconcile_batch' => (int) env('SYNC_RECONCILE_BATCH', 2000),
 
+    /*
+    | Protección contra muchas peticiones a la vez (por ejemplo, al subirse un capítulo y abrir la app miles de
+    | personas): page_cache_seconds guarda cada página armada ese tiempo (0 lo desactiva); max_concurrent es cuántas
+    | páginas pueden armarse a la vez contra la base de datos (0 sin tope); queue_wait_seconds es cuánto espera una
+    | petición su turno antes de recibir 503 con Retry-After.
+    */
+
+    'page_cache_seconds' => (int) env('SYNC_PAGE_CACHE_SECONDS', 60),
+
+    'max_concurrent' => (int) env('SYNC_MAX_CONCURRENT', 32),
+
+    'queue_wait_seconds' => (float) env('SYNC_QUEUE_WAIT_SECONDS', 3),
+
     'default_limit' => 5000,
 
     'max_limit' => 10000,

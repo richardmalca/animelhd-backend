@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Sync\SyncPageCache;
 use App\Services\Sync\SyncReconciler;
-use App\Services\Sync\SyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SyncController extends Controller
 {
     public function __construct(
-        private readonly SyncService $service,
+        private readonly SyncPageCache $pages,
         private readonly SyncReconciler $reconciler,
     ) {}
 
@@ -32,10 +32,18 @@ class SyncController extends Controller
         // por minuto; nunca impide responder).
         $this->reconciler->reconcileIfDue();
 
-        $page = $this->service->page(
+        $page = $this->pages->page(
             cursor: (int) ($validated['cursor'] ?? 0),
             limit: (int) ($validated['limit'] ?? config('sync.default_limit')),
         );
+
+        // Servidor saturado y sin turno a tiempo: la app reintenta en unos segundos en vez de apilarse.
+        if ($page === null) {
+            return response()
+                ->json(['message' => 'Servidor ocupado, reintenta en unos segundos.'], 503)
+                ->header('Retry-After', (string) random_int(2, 6))
+                ->header('Cache-Control', 'no-store');
+        }
 
         return response()->json($page)->header('Cache-Control', 'no-store');
     }
