@@ -6,7 +6,7 @@ import { Pagination } from '@/components/pagination';
 import { UserEmailModal } from '@/components/user-email-modal';
 import { UserPasswordModal } from '@/components/user-password-modal';
 import { useUser } from '@/hooks/use-user';
-import { UserFiltersSection } from './components/user-filters-section';
+import { MIN_SEARCH_LENGTH, UserFiltersSection } from './components/user-filters-section';
 import { UserStatsCards } from './components/user-stats-cards';
 import { UserTable } from './components/user-table';
 
@@ -32,16 +32,18 @@ export default function UserIndex({
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [userToEmail, setUserToEmail] = useState<any>(null);
 
+    const effectiveSearch = search.trim().length >= MIN_SEARCH_LENGTH ? search : '';
+
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
-            if (search !== (filters.search || '') || isPremium !== (filters.isPremium || 'all')) {
-                searchUsers({ search, isPremium });
+            if (effectiveSearch !== (filters.search || '') || isPremium !== (filters.isPremium || 'all')) {
+                searchUsers({ search: effectiveSearch, isPremium });
             }
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, isPremium]);
+    }, [effectiveSearch, isPremium]);
 
     const confirmToggle = (user: any) => {
         setUserToToggle(user);

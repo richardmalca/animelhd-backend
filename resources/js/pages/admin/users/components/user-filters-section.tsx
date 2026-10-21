@@ -10,6 +10,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
+export const MIN_SEARCH_LENGTH = 3;
+
 interface UserFiltersSectionProps {
     search: string;
     setSearch: (value: string) => void;
@@ -42,12 +44,14 @@ export function UserFiltersSection({
     setIsPremium,
 }: UserFiltersSectionProps) {
     const [showFilters, setShowFilters] = useState(false);
+    const searchLength = search.trim().length;
+    const searchTooShort = searchLength > 0 && searchLength < MIN_SEARCH_LENGTH;
 
     return (
         <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
                 <SearchInput
-                    placeholder="Buscar por nombre o correo..."
+                    placeholder="Buscar por inicio de nombre o correo..."
                     value={search}
                     onChange={setSearch}
                 />
@@ -64,6 +68,11 @@ export function UserFiltersSection({
                     <IsPremiumSelect isPremium={isPremium} setIsPremium={setIsPremium} />
                 </div>
             </div>
+            {searchTooShort && (
+                <p className="text-xs text-muted-foreground">
+                    Escribe al menos {MIN_SEARCH_LENGTH} caracteres para buscar.
+                </p>
+            )}
             {showFilters && (
                 <div className="md:hidden">
                     <IsPremiumSelect isPremium={isPremium} setIsPremium={setIsPremium} />
