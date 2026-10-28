@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\EpisodeController;
 use App\Http\Controllers\Admin\GenreController;
 use App\Http\Controllers\Admin\PlayerController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ServerController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('admin/users/{user}/update-password', [UserController::class, 'updatePassword'])->name('admin.users.update-password');
     Route::post('admin/users/{user}/update-email', [UserController::class, 'updateEmail'])->name('admin.users.update-email');
     Route::resource('admin/users', UserController::class)->only(['index']);
+
+    Route::get('admin/reports/emails', [ReportController::class, 'emails'])->name('admin.reports.emails');
+    Route::post('admin/reports/emails/refresh', [ReportController::class, 'refreshEmails'])->name('admin.reports.emails.refresh');
 });
 
 Route::get('/v/{slug}/{token?}', [\App\Http\Controllers\PlayerController::class, 'show'])

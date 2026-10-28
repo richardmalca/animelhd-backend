@@ -5,6 +5,7 @@ import {
     Tv,
     Radio,
     Key,
+    MailCheck,
     Tag,
     Server,
     Users,
@@ -49,6 +50,11 @@ export function AppSidebar() {
             title: 'Usuarios',
             href: '/admin/users',
             icon: Users,
+        },
+        {
+            title: 'Reporte de correos',
+            href: '/admin/reports/emails',
+            icon: MailCheck,
         },
     ];
 
